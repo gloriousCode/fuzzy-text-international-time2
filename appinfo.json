@@ -53,8 +53,8 @@
         "gabbro"
     ],
     "uuid": "bf4b4493-24d6-49e1-9388-4100aa55d9ba",
-    "versionCode": 8,
-    "versionLabel": "1.4.3",
+    "versionCode": 9,
+    "versionLabel": "1.4.4",
     "watchapp": {
         "watchface": true
     }

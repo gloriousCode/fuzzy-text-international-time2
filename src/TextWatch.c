@@ -369,115 +369,10 @@ static void apply_layer_styles(void)
 
 static bool should_use_high_resolution_layout(void);
 
-static bool render_font_fits(FontChoice choice, char text[NUM_LINES][BUFFER_SIZE],
-		char format[])
+static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE])
 {
-	int line_count = count_text_lines(text);
-	const GTextAlignment alignment = lookup_text_alignment(text_align);
-
-	for (int i = 0; i < line_count; i++) {
-		TextFrame frame = text_frame_for_line(screen_bounds.size.w, screen_bounds.size.h,
-			PBL_IF_ROUND_ELSE(true, false), choice, line_count, i);
-		if (frame.x < 0 || frame.y < 0
-				|| frame.x + frame.w > screen_bounds.size.w
-				|| frame.y + frame.h > screen_bounds.size.h) {
-			return false;
-		}
-
-		GFont font = font_for_choice(choice, format[i] == 'b');
-		GSize content_size = graphics_text_layout_get_content_size(text[i], font,
-			GRect(0, 0, screen_bounds.size.w * 4, frame.h * 2),
-			GTextOverflowModeWordWrap, alignment);
-		if (content_size.w > frame.w || content_size.h > frame.h) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static FontChoice fallback_font_for_attempt(FontChoice preferred, int attempt)
-{
-	static const FontChoice high_resolution_large_fallbacks[] = {
-		FONT_CHOICE_LARGE,
-		FONT_CHOICE_MEDIUM,
-		FONT_CHOICE_CLASSIC,
-		FONT_CHOICE_SHARP,
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SMALL,
-	};
-	static const FontChoice high_resolution_compact_fallbacks[] = {
-		FONT_CHOICE_MEDIUM,
-		FONT_CHOICE_LARGE,
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SHARP,
-		FONT_CHOICE_SMALL,
-	};
-	static const FontChoice tall_fallbacks[] = {
-		FONT_CHOICE_TALL,
-		FONT_CHOICE_CLASSIC,
-		FONT_CHOICE_SHARP,
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SMALL,
-	};
-	static const FontChoice classic_fallbacks[] = {
-		FONT_CHOICE_CLASSIC,
-		FONT_CHOICE_SHARP,
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SMALL,
-	};
-	static const FontChoice sharp_fallbacks[] = {
-		FONT_CHOICE_SHARP,
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SMALL,
-	};
-	static const FontChoice compact_fallbacks[] = {
-		FONT_CHOICE_COMPACT,
-		FONT_CHOICE_SMALL,
-	};
-
-	if (should_use_high_resolution_layout()) {
-		if (preferred == FONT_CHOICE_COMPACT) {
-			return attempt < (int)(sizeof(high_resolution_compact_fallbacks) / sizeof(high_resolution_compact_fallbacks[0]))
-				? high_resolution_compact_fallbacks[attempt]
-				: FONT_CHOICE_SMALL;
-		}
-		return attempt < (int)(sizeof(high_resolution_large_fallbacks) / sizeof(high_resolution_large_fallbacks[0]))
-			? high_resolution_large_fallbacks[attempt]
-			: FONT_CHOICE_SMALL;
-	}
-
-	switch (preferred) {
-		case FONT_CHOICE_TALL:
-			return attempt < (int)(sizeof(tall_fallbacks) / sizeof(tall_fallbacks[0]))
-				? tall_fallbacks[attempt]
-				: FONT_CHOICE_SMALL;
-		case FONT_CHOICE_SHARP:
-			return attempt < (int)(sizeof(sharp_fallbacks) / sizeof(sharp_fallbacks[0]))
-				? sharp_fallbacks[attempt]
-				: FONT_CHOICE_SMALL;
-		case FONT_CHOICE_COMPACT:
-			return attempt < (int)(sizeof(compact_fallbacks) / sizeof(compact_fallbacks[0]))
-				? compact_fallbacks[attempt]
-				: FONT_CHOICE_SMALL;
-		default:
-			return attempt < (int)(sizeof(classic_fallbacks) / sizeof(classic_fallbacks[0]))
-				? classic_fallbacks[attempt]
-				: FONT_CHOICE_SMALL;
-	}
-}
-
-static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE],
-		char format[])
-{
-	for (int attempt = 0; attempt < FONT_CHOICE_COUNT; attempt++) {
-		FontChoice choice = fallback_font_for_attempt(font_choice, attempt);
-		if (render_font_fits(choice, text, format)) {
-			return choice;
-		}
-	}
-
-	return FONT_CHOICE_SMALL;
+	return text_font_choice_that_fits(screen_bounds.size.w, screen_bounds.size.h,
+		PBL_IF_ROUND_ELSE(true, false), font_choice, text);
 }
 
 static bool should_use_high_resolution_layout(void)
@@ -528,14 +423,14 @@ static void choose_time_lines(Language language, int hours, int minutes, int sec
 
 	if (!should_use_high_resolution_layout()) {
 		time_to_lines(language, hours, minutes, seconds, text, format);
-		render_font_choice = choose_render_font(text, format);
+		render_font_choice = choose_render_font(text);
 		return;
 	}
 
 	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
 		time_to_lines_with_limit(language, hours, minutes, seconds, high_resolution_limits[i],
 			candidate, candidate_format);
-		FontChoice candidate_font = choose_render_font(candidate, candidate_format);
+		FontChoice candidate_font = choose_render_font(candidate);
 		int candidate_line_count = count_text_lines(candidate);
 
 		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
@@ -566,14 +461,14 @@ static void choose_date_lines(Language language, int day, int date, int month,
 
 	if (!should_use_high_resolution_layout()) {
 		date_to_lines(language, day, date, month, text, format);
-		render_font_choice = choose_render_font(text, format);
+		render_font_choice = choose_render_font(text);
 		return;
 	}
 
 	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
 		date_to_lines_with_limit(language, day, date, month, high_resolution_limits[i],
 			candidate, candidate_format);
-		FontChoice candidate_font = choose_render_font(candidate, candidate_format);
+		FontChoice candidate_font = choose_render_font(candidate);
 		int candidate_line_count = count_text_lines(candidate);
 
 		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
