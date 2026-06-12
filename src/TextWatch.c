@@ -84,16 +84,34 @@ static void destroy_property_animation(PropertyAnimation **animation)
 	*animation = NULL;
 }
 
-// Animation handler
-static void animationStoppedHandler(struct Animation *animation, bool finished, void *context)
+static void destroy_finished_property_animation(PropertyAnimation **animation)
 {
-	TextLayer *current = (TextLayer *)context;
-	if (current == NULL) {
+	if (*animation == NULL) {
 		return;
 	}
-	GRect rect = layer_get_frame((Layer *)current);
-	rect.origin.x = screen_bounds.size.w;
-	layer_set_frame((Layer *)current, rect);
+
+	property_animation_destroy(*animation);
+	*animation = NULL;
+}
+
+static void animationStoppedHandler(struct Animation *animation, bool finished, void *context)
+{
+	(void)animation;
+	(void)finished;
+
+	Line *line = (Line *)context;
+	if (line == NULL) {
+		return;
+	}
+
+	if (line->nextLayer != NULL) {
+		GRect rect = layer_get_frame((Layer *)line->nextLayer);
+		rect.origin.x = screen_bounds.size.w;
+		layer_set_frame((Layer *)line->nextLayer, rect);
+	}
+
+	destroy_finished_property_animation(&line->animation1);
+	destroy_finished_property_animation(&line->animation2);
 }
 
 // Animate line
@@ -137,7 +155,7 @@ static void makeAnimationsForLayer(Line *line, int delay)
 	// Set a handler to rearrange layers after animation is finished
 	animation_set_handlers(animation2, (AnimationHandlers) {
 		.stopped = (AnimationStoppedHandler)animationStoppedHandler
-	}, current);
+	}, line);
 
 	// Start the animations
 	animation_schedule(animation1);
@@ -578,12 +596,6 @@ static void display_time(struct tm *t)
   forceDisplayUpdate = false;
 }
 
-static void tap_handler(AccelAxisType axis, int32_t direction)
-{
-  showTime = !showTime;
-  display_time(t);
-}
-
 static void initLineForStart(Line* line)
 {
 	// Switch current and next layer
@@ -931,10 +943,6 @@ static void handle_init() {
 	app_message_register_inbox_dropped(inbox_dropped_callback);
 	app_message_open(inbound_size, outbound_size);
   
-  // Sample as little as often to save battery and no need for precision
-  accel_service_set_sampling_rate(ACCEL_SAMPLING_10HZ);
-  accel_tap_service_subscribe(tap_handler);
-
 	// Subscribe to minute ticks
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
 
@@ -946,6 +954,9 @@ static void handle_init() {
 
 static void handle_deinit()
 {
+	tick_timer_service_unsubscribe();
+	app_message_deregister_callbacks();
+
 	// Free window
 	window_destroy(window);
 }
