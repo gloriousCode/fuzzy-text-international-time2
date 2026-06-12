@@ -88,6 +88,9 @@ static void destroy_property_animation(PropertyAnimation **animation)
 static void animationStoppedHandler(struct Animation *animation, bool finished, void *context)
 {
 	TextLayer *current = (TextLayer *)context;
+	if (current == NULL) {
+		return;
+	}
 	GRect rect = layer_get_frame((Layer *)current);
 	rect.origin.x = screen_bounds.size.w;
 	layer_set_frame((Layer *)current, rect);
@@ -98,6 +101,9 @@ static void makeAnimationsForLayer(Line *line, int delay)
 {
 	TextLayer *current = line->currentLayer;
 	TextLayer *next = line->nextLayer;
+	if (current == NULL || next == NULL) {
+		return;
+	}
 
 	// Destroy old animations
 	destroy_property_animation(&line->animation1);
@@ -140,7 +146,13 @@ static void makeAnimationsForLayer(Line *line, int delay)
 
 static void updateLayerText(TextLayer* layer, char* text)
 {
+	if (layer == NULL) {
+		return;
+	}
 	const char* layerText = text_layer_get_text(layer);
+	if (layerText == NULL) {
+		return;
+	}
 	strncpy((char*)layerText, text, BUFFER_SIZE);
 	((char*)layerText)[BUFFER_SIZE - 1] = '\0';
 	// To mark layer dirty
@@ -163,7 +175,13 @@ static void updateLineTo(Line *line, char *value, int delay)
 // Check to see if the current line needs to be updated
 static bool needToUpdateLine(Line *line, char *nextValue)
 {
+	if (line->currentLayer == NULL) {
+		return true;
+	}
 	const char *currentStr = text_layer_get_text(line->currentLayer);
+	if (currentStr == NULL) {
+		return true;
+	}
 
 	if (strcmp(currentStr, nextValue) != 0) {
 		return true;
@@ -269,12 +287,24 @@ static GFont font_for_choice(FontChoice choice, bool bold)
 	{
 		case FONT_CHOICE_LARGE:
 			if (bold) {
+				if (custom_font_large_bold == NULL) {
+					custom_font_large_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_54));
+				}
 				return custom_font_large_bold ? custom_font_large_bold : fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
+			}
+			if (custom_font_large_light == NULL) {
+				custom_font_large_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_54));
 			}
 			return custom_font_large_light ? custom_font_large_light : fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT);
 		case FONT_CHOICE_MEDIUM:
 			if (bold) {
+				if (custom_font_medium_bold == NULL) {
+					custom_font_medium_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_48));
+				}
 				return custom_font_medium_bold ? custom_font_medium_bold : fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
+			}
+			if (custom_font_medium_light == NULL) {
+				custom_font_medium_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_48));
 			}
 			return custom_font_medium_light ? custom_font_medium_light : fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT);
 		case FONT_CHOICE_SHARP:
@@ -287,22 +317,6 @@ static GFont font_for_choice(FontChoice choice, bool bold)
 			return fonts_get_system_font(bold ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_18);
 		default:
 			return fonts_get_system_font(bold ? FONT_KEY_BITHAM_42_BOLD : FONT_KEY_BITHAM_42_LIGHT);
-	}
-}
-
-static void load_custom_fonts(void)
-{
-	if (custom_font_large_light == NULL) {
-		custom_font_large_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_54));
-	}
-	if (custom_font_large_bold == NULL) {
-		custom_font_large_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_54));
-	}
-	if (custom_font_medium_light == NULL) {
-		custom_font_medium_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_48));
-	}
-	if (custom_font_medium_bold == NULL) {
-		custom_font_medium_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_48));
 	}
 }
 
@@ -325,6 +339,9 @@ static void unload_custom_fonts(void)
 // Configure bold line of text
 static void configureBoldLayer(TextLayer *textlayer)
 {
+	if (textlayer == NULL) {
+		return;
+	}
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, true));
 	text_layer_set_text_color(textlayer, foreground_colour());
 	text_layer_set_background_color(textlayer, GColorClear);
@@ -335,6 +352,9 @@ static void configureBoldLayer(TextLayer *textlayer)
 // Configure light line of text
 static void configureLightLayer(TextLayer *textlayer)
 {
+	if (textlayer == NULL) {
+		return;
+	}
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, false));
 	text_layer_set_text_color(textlayer, foreground_colour());
 	text_layer_set_background_color(textlayer, GColorClear);
@@ -361,8 +381,12 @@ static void apply_layer_styles(void)
 	{
 		configureLightLayer(lines[i].currentLayer);
 		configureLightLayer(lines[i].nextLayer);
-		layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
-		layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
+		if (lines[i].currentLayer != NULL) {
+			layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
+		}
+		if (lines[i].nextLayer != NULL) {
+			layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
+		}
 	}
 	forceDisplayUpdate = true;
 }
@@ -517,7 +541,9 @@ static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format
 	{
 		TextFrame frame = text_frame_for_line(screen_bounds.size.w, screen_bounds.size.h,
 			PBL_IF_ROUND_ELSE(true, false), render_font_choice, numLines, i);
-		layer_set_frame((Layer *)lines[i].nextLayer, GRect(screen_bounds.size.w, frame.y, frame.w, frame.h));
+		if (lines[i].nextLayer != NULL) {
+			layer_set_frame((Layer *)lines[i].nextLayer, GRect(screen_bounds.size.w, frame.y, frame.w, frame.h));
+		}
 	}
 
 	return numLines;
@@ -564,6 +590,9 @@ static void initLineForStart(Line* line)
 	TextLayer* tmp  = line->currentLayer;
 	line->currentLayer = line->nextLayer;
 	line->nextLayer = tmp;
+	if (line->currentLayer == NULL) {
+		return;
+	}
 
 	// Move current layer to screen;
 	GRect rect = layer_get_frame((Layer *)line->currentLayer);
@@ -659,21 +688,12 @@ static void click_config_provider(ClickConfig **config, Window *window) {
 #endif
 
 static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
-	GTextAlignment alignment;
 	switch (key) {
 		case TEXT_ALIGN_KEY:
 			text_align = valid_text_align(new_tuple->value->uint8);
 			persist_write_int(TEXT_ALIGN_KEY, text_align);
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set text alignment: %u", text_align);
-
-			alignment = lookup_text_alignment(text_align);
-			for (int i = 0; i < NUM_LINES; i++)
-			{
-				text_layer_set_text_alignment(lines[i].currentLayer, alignment);
-				text_layer_set_text_alignment(lines[i].nextLayer, alignment);
-				layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
-				layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
-			}
+			apply_layer_styles();
 			break;
 		case INVERT_KEY:
 			if (new_tuple->value->uint8 == 1)
@@ -763,6 +783,10 @@ static void init_line(Line* line)
 	// Create layers with dummy position to the right of the screen
 	line->currentLayer = text_layer_create(GRect(screen_bounds.size.w, 0, screen_bounds.size.w, 50));
 	line->nextLayer = text_layer_create(GRect(screen_bounds.size.w, 0, screen_bounds.size.w, 50));
+	if (line->currentLayer == NULL || line->nextLayer == NULL) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create text layers");
+		return;
+	}
 
 	// Configure a style
 	configureLightLayer(line->currentLayer);
@@ -785,25 +809,32 @@ static void destroy_line(Line* line)
 	destroy_property_animation(&line->animation2);
 
 	// Free layers
-	text_layer_destroy(line->currentLayer);
-	text_layer_destroy(line->nextLayer);
+	if (line->currentLayer != NULL) {
+		text_layer_destroy(line->currentLayer);
+		line->currentLayer = NULL;
+	}
+	if (line->nextLayer != NULL) {
+		text_layer_destroy(line->nextLayer);
+		line->nextLayer = NULL;
+	}
 }
 
 static void window_load(Window *window)
 {
 	Layer *window_layer = window_get_root_layer(window);
 	screen_bounds = layer_get_bounds(window_layer);
-	if (screen_bounds.size.w >= 200 && screen_bounds.size.h >= 200) {
-		load_custom_fonts();
-	}
 	apply_window_colours();
 
 	// Init and load lines
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		init_line(&lines[i]);
-		layer_add_child(window_layer, (Layer *)lines[i].currentLayer);
-		layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
+		if (lines[i].currentLayer != NULL) {
+			layer_add_child(window_layer, (Layer *)lines[i].currentLayer);
+		}
+		if (lines[i].nextLayer != NULL) {
+			layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
+		}
 	}
 	window_loaded = true;
 

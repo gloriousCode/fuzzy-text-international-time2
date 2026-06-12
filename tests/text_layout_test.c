@@ -29,6 +29,8 @@ static const char *current_label = "";
 static int current_language;
 static int current_hour;
 static int current_minute;
+static int current_second;
+static int current_font;
 static int current_day;
 static int current_date;
 static int current_month;
@@ -36,9 +38,9 @@ static int current_month;
 static void print_crash_context(int signal)
 {
   fprintf(stderr,
-      "signal=%d label=%s language=%d hour=%d minute=%d day=%d date=%d month=%d\n",
+      "signal=%d label=%s language=%d hour=%d minute=%d second=%d font=%d day=%d date=%d month=%d\n",
       signal, current_label, current_language, current_hour, current_minute,
-      current_day, current_date, current_month);
+      current_second, current_font, current_day, current_date, current_month);
   exit(128 + signal);
 }
 
@@ -104,6 +106,43 @@ static void assert_time_lines_fit(void)
         for (int screen = 0; screen < (int)(sizeof(screen_cases) / sizeof(screen_cases[0])); screen++) {
           for (int font = 0; font < FONT_CHOICE_COUNT; font++) {
             assert_lines_fit(&screen_cases[screen], (FontChoice)font, lines, "time");
+          }
+        }
+      }
+    }
+  }
+}
+
+static void assert_emery_time_permutations_fit(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+  const ScreenCase *emery = &screen_cases[4];
+  const int seconds_cases[] = { 0, 30 };
+
+  for (int language = CA; language <= SV; language++) {
+    current_language = language;
+    for (int hour = 0; hour < 24; hour++) {
+      current_hour = hour;
+      for (int minute = 0; minute < 60; minute++) {
+        current_minute = minute;
+        for (int second_index = 0; second_index < (int)(sizeof(seconds_cases) / sizeof(seconds_cases[0])); second_index++) {
+          current_second = seconds_cases[second_index];
+          current_label = "emery-time-permutation";
+          time_to_lines((Language)language, hour, minute, current_second, lines, format);
+
+          int line_count = count_lines(lines);
+          if (line_count <= 0 || line_count > FUZZY_TEXT_NUM_LINES) {
+            fprintf(stderr,
+                "invalid emery line count language=%d hour=%d minute=%d second=%d line_count=%d\n",
+                language, hour, minute, current_second, line_count);
+          }
+          assert(line_count > 0);
+          assert(line_count <= FUZZY_TEXT_NUM_LINES);
+
+          for (int font = 0; font < FONT_CHOICE_COUNT; font++) {
+            current_font = font;
+            assert_lines_fit(emery, (FontChoice)font, lines, "emery-time-permutation");
           }
         }
       }
@@ -225,6 +264,7 @@ int main(void)
   signal(SIGSEGV, print_crash_context);
 
   assert_time_lines_fit();
+  assert_emery_time_permutations_fit();
   assert_date_lines_fit();
   assert_time_lines_mark_hour_bold();
   assert_high_resolution_time_uses_large_fonts();
