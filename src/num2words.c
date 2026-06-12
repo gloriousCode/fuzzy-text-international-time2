@@ -14,10 +14,13 @@ size_t min(const size_t a, const size_t b) {
 }
 
 static size_t append_string(char* buffer, const size_t length, const char* str) {
-  strncat(buffer, str, length);
+  if (length == 0) {
+    return 0;
+  }
 
-  size_t written = strlen(str);
-  return (length > written) ? written : length;
+  size_t written = min(strlen(str), length - 1);
+  strncat(buffer, str, written);
+  return written;
 }
 
 static size_t interpolate_and_append(char* buffer, const size_t length,

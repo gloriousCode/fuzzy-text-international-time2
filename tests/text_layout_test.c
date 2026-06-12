@@ -1,0 +1,144 @@
+#include "../src/text_layout.h"
+#include "../src/text_lines.h"
+
+#include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <signal.h>
+#include <stdlib.h>
+
+typedef struct {
+  const char *name;
+  int width;
+  int height;
+  bool round;
+} ScreenCase;
+
+static const ScreenCase screen_cases[] = {
+  { "emery", 200, 228, false },
+  { "gabbro", 260, 260, true },
+};
+
+static const char *current_label = "";
+static int current_language;
+static int current_hour;
+static int current_minute;
+static int current_day;
+static int current_date;
+static int current_month;
+
+static void print_crash_context(int signal)
+{
+  fprintf(stderr,
+      "signal=%d label=%s language=%d hour=%d minute=%d day=%d date=%d month=%d\n",
+      signal, current_label, current_language, current_hour, current_minute,
+      current_day, current_date, current_month);
+  exit(128 + signal);
+}
+
+static int count_lines(char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE])
+{
+  int count = 0;
+
+  for (int i = 0; i < FUZZY_TEXT_NUM_LINES; i++) {
+    if (strlen(lines[i]) == 0) {
+      break;
+    }
+    count++;
+  }
+
+  return count;
+}
+
+static bool frame_fits_screen(TextFrame frame, const ScreenCase *screen)
+{
+  return frame.x >= 0
+      && frame.y >= 0
+      && frame.x + frame.w <= screen->width
+      && frame.y + frame.h <= screen->height;
+}
+
+static void assert_lines_fit(const ScreenCase *screen, FontChoice preferred_font_choice,
+    char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], const char *label)
+{
+  int line_count = count_lines(lines);
+  FontChoice font_choice = text_font_choice_that_fits(screen->width, screen->height,
+      screen->round, preferred_font_choice, lines);
+
+  for (int i = 0; i < line_count; i++) {
+    TextFrame frame = text_frame_for_line(screen->width, screen->height,
+        screen->round, font_choice, line_count, i);
+    int text_width = text_estimated_width(font_choice, lines[i]);
+
+    if (!frame_fits_screen(frame, screen) || text_width > frame.w) {
+      fprintf(stderr,
+          "%s preferred_font=%d rendered_font=%d line=%d text='%s' text_width=%d frame=%d,%d,%d,%d screen=%s\n",
+          label, preferred_font_choice, font_choice, i, lines[i], text_width,
+          frame.x, frame.y, frame.w, frame.h, screen->name);
+    }
+
+    assert(frame_fits_screen(frame, screen));
+    assert(text_width <= frame.w);
+  }
+}
+
+static void assert_time_lines_fit(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+
+  for (int language = CA; language <= SV; language++) {
+    current_language = language;
+    for (int hour = 0; hour < 24; hour++) {
+      current_hour = hour;
+      for (int minute = 0; minute < 60; minute += 5) {
+        current_label = "time";
+        current_minute = minute;
+        time_to_lines((Language)language, hour, minute, 0, lines, format);
+        for (int screen = 0; screen < (int)(sizeof(screen_cases) / sizeof(screen_cases[0])); screen++) {
+          for (int font = 0; font < FONT_CHOICE_COUNT; font++) {
+            assert_lines_fit(&screen_cases[screen], (FontChoice)font, lines, "time");
+          }
+        }
+      }
+    }
+  }
+}
+
+static void assert_date_lines_fit(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+
+  for (int language = CA; language <= SV; language++) {
+    current_language = language;
+    for (int day = 0; day < 7; day++) {
+      current_day = day;
+      for (int month = 0; month < 12; month++) {
+        current_month = month;
+        for (int date = 1; date <= 31; date++) {
+          current_label = "date";
+          current_date = date;
+          date_to_lines((Language)language, day, date, month, lines, format);
+          for (int screen = 0; screen < (int)(sizeof(screen_cases) / sizeof(screen_cases[0])); screen++) {
+            for (int font = 0; font < FONT_CHOICE_COUNT; font++) {
+              assert_lines_fit(&screen_cases[screen], (FontChoice)font, lines, "date");
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+int main(void)
+{
+  signal(SIGSEGV, print_crash_context);
+
+  assert_time_lines_fit();
+  assert_date_lines_fit();
+
+  puts("text layout compatibility checks passed");
+  return 0;
+}

@@ -50,12 +50,94 @@
 		<form id="config" role="form" class="input-lg">
 
 			<fieldset>
-				<legend>Colors:</legend>
-				<div class="checkbox">
+				<legend>Presets:</legend>
+				<div class="radio-inline">
 					<label>
-						<input type="checkbox" name="invert" value="on" />
-						invert colors
+						<input type="radio" name="preset" value="classic" checked />
+						classic
 					</label>
+				</div>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="preset" value="paper" />
+						paper
+					</label>
+				</div>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="preset" value="ocean" />
+						ocean
+					</label>
+				</div>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="preset" value="berry" />
+						berry
+					</label>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>Fonts:</legend>
+				<div class="radio">
+					<label>
+						<input type="radio" name="font" value="classic" checked />
+						classic Bitham
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="font" value="sharp" />
+						sharp Gothic
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="font" value="compact" />
+						compact Gothic
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="font" value="tall" />
+						tall Bitham
+					</label>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>Colours:</legend>
+				<div class="form-group">
+					<label for="foreground-colour">foreground</label>
+					<select class="form-control" id="foreground-colour" name="foreground_colour">
+						<option value="white" selected>white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="background-colour">background</label>
+					<select class="form-control" id="background-colour" name="background_colour">
+						<option value="black" selected>black</option>
+						<option value="white">white</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
 				</div>
 			</fieldset>
 
@@ -153,7 +235,30 @@
 
 	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script>
-		var LATEST = "1.2.1";
+		var LATEST = "1.4.0";
+
+		var presets = {
+			classic: {
+				font: 'classic',
+				foreground_colour: 'white',
+				background_colour: 'black'
+			},
+			paper: {
+				font: 'sharp',
+				foreground_colour: 'black',
+				background_colour: 'white'
+			},
+			ocean: {
+				font: 'compact',
+				foreground_colour: 'cyan',
+				background_colour: 'blue'
+			},
+			berry: {
+				font: 'tall',
+				foreground_colour: 'yellow',
+				background_colour: 'purple'
+			}
+		};
 
 		function saveOptions() {
 			var params = {};
@@ -162,9 +267,12 @@
 			});
 
 			var options = {
-				invert:		params.invert === 'on',
 				text_align:	params.align || 'center',
-				lang:		params.lang
+				lang:		params.lang,
+				font:		params.font || 'classic',
+				foreground_colour: params.foreground_colour || 'white',
+				background_colour: params.background_colour || 'black',
+				preset: params.preset || 'classic'
 			}
 			return options;
 		}
@@ -172,9 +280,6 @@
 		function applyOptions() {
 			var $form	= $('#config');
 			var opts	= JSON.parse(getParam('options'));
-			if (opts && opts.invert) {
-				$form.find('[name="invert"]').prop('checked', true);
-			}
 			if (opts && opts.text_align) {
 				$form.find('[name="align"]').filter(function(i, btn) {
 					return btn.value === opts.text_align;
@@ -185,12 +290,28 @@
 					return btn.value === opts.lang;
 				}).prop('checked', true);
 			}
+			if (opts && opts.font) {
+				$form.find('[name="font"]').filter(function(i, btn) {
+					return btn.value === opts.font;
+				}).prop('checked', true);
+			}
+			if (opts && opts.foreground_colour) {
+				$form.find('[name="foreground_colour"]').val(opts.foreground_colour);
+			}
+			if (opts && opts.background_colour) {
+				$form.find('[name="background_colour"]').val(opts.background_colour);
+			}
+			if (opts && opts.preset) {
+				$form.find('[name="preset"]').filter(function(i, btn) {
+					return btn.value === opts.preset;
+				}).prop('checked', true);
+			}
 		}
 
 		function getParam(key) {
-			var params = window.location.hash;
+			var params = window.location.hash + '&' + window.location.search;
 			var val;
-			params.replace(/(?:^|[#&])([a-z]+)=([^&]+)/ig, function(_, k, v) {
+			params.replace(/(?:^|[#?&])([a-z_]+)=([^&]+)/ig, function(_, k, v) {
 				if (key === k) {
 					val = decodeURIComponent(v);
 				}
@@ -206,8 +327,34 @@
 		}
 
 		$("#b-submit").click(function() {
-			var location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(saveOptions()));
+			var returnTo = getParam('return_to');
+			var location = returnTo
+				? returnTo + encodeURIComponent(JSON.stringify(saveOptions()))
+				: "pebblejs://close#" + encodeURIComponent(JSON.stringify(saveOptions()));
 			document.location = location;
+		});
+
+		$('[href="pebblejs://close"]').click(function(event) {
+			var returnTo = getParam('return_to');
+			if (!returnTo) {
+				return;
+			}
+
+			event.preventDefault();
+			document.location = returnTo;
+		});
+
+		$('[name="preset"]').change(function() {
+			var preset = presets[this.value];
+			if (!preset) {
+				return;
+			}
+
+			$('[name="font"]').filter(function(i, btn) {
+				return btn.value === preset.font;
+			}).prop('checked', true);
+			$('[name="foreground_colour"]').val(preset.foreground_colour);
+			$('[name="background_colour"]').val(preset.background_colour);
 		});
 
 		var version = getParam('v');

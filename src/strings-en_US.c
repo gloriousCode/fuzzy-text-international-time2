@@ -62,6 +62,7 @@ const char* const MONTHS_EN_US[] = {
   "jul",
   "aug",
   "sep",
+  "oct",
   "nov",
   "dec"
 };

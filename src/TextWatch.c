@@ -1,18 +1,21 @@
 #include <pebble.h>
 
 #include "num2words.h"
+#include "text_layout.h"
+#include "text_lines.h"
 
 #define DEBUG 0
 
-#define NUM_LINES 4
-#define LINE_LENGTH 7
-#define BUFFER_SIZE (LINE_LENGTH + 2)
-#define ROW_HEIGHT 37
-#define TOP_MARGIN 10
+#define NUM_LINES FUZZY_TEXT_NUM_LINES
+#define LINE_LENGTH FUZZY_TEXT_LINE_LENGTH
+#define BUFFER_SIZE FUZZY_TEXT_BUFFER_SIZE
 
 #define INVERT_KEY 0
 #define TEXT_ALIGN_KEY 1
 #define LANGUAGE_KEY 2
+#define FONT_CHOICE_KEY 3
+#define FOREGROUND_COLOR_KEY 4
+#define BACKGROUND_COLOR_KEY 5
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
@@ -25,18 +28,18 @@
 // Delay from the start of the current layer going out until the next layer slides in
 #define ANIMATION_OUT_IN_DELAY 100
 
-#define LINE_APPEND_MARGIN 0
-// We can add a new word to a line if there are at least this many characters free after
-#define LINE_APPEND_LIMIT (LINE_LENGTH - LINE_APPEND_MARGIN)
-
 static AppSync sync;
-static uint8_t sync_buffer[64];
+static uint8_t sync_buffer[160];
 
 static int text_align = TEXT_ALIGN_CENTER;
-static bool invert = false;
+static int foreground_color = 0xFFFFFF;
+static int background_color = 0x000000;
+static FontChoice font_choice = FONT_CHOICE_CLASSIC;
+static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
 static Language lang = EN_US;
 
 static Window *window;
+static GRect screen_bounds;
 
 typedef struct {
 	TextLayer *currentLayer;
@@ -48,7 +51,6 @@ typedef struct {
 } Line;
 
 static Line lines[NUM_LINES];
-static InverterLayer *inverter_layer;
 
 static struct tm *t;
 
@@ -62,7 +64,7 @@ static void animationStoppedHandler(struct Animation *animation, bool finished, 
 {
 	TextLayer *current = (TextLayer *)context;
 	GRect rect = layer_get_frame((Layer *)current);
-	rect.origin.x = 144;
+	rect.origin.x = screen_bounds.size.w;
 	layer_set_frame((Layer *)current, rect);
 }
 
@@ -84,28 +86,30 @@ static void makeAnimationsForLayer(Line *line, int delay)
 
 	// Configure animation for current layer to move out
 	GRect rect = layer_get_frame((Layer *)current);
-	rect.origin.x =  -144;
+	rect.origin.x =  -screen_bounds.size.w;
 	line->animation1 = property_animation_create_layer_frame((Layer *)current, NULL, &rect);
-	animation_set_duration(&line->animation1->animation, ANIMATION_DURATION);
-	animation_set_delay(&line->animation1->animation, delay);
-	animation_set_curve(&line->animation1->animation, AnimationCurveEaseIn); // Accelerate
+	Animation *animation1 = property_animation_get_animation(line->animation1);
+	animation_set_duration(animation1, ANIMATION_DURATION);
+	animation_set_delay(animation1, delay);
+	animation_set_curve(animation1, AnimationCurveEaseIn); // Accelerate
 
 	// Configure animation for current layer to move in
 	GRect rect2 = layer_get_frame((Layer *)next);
-	rect2.origin.x = 0;
+	rect2.origin.x = (screen_bounds.size.w - rect2.size.w) / 2;
 	line->animation2 = property_animation_create_layer_frame((Layer *)next, NULL, &rect2);
-	animation_set_duration(&line->animation2->animation, ANIMATION_DURATION);
-	animation_set_delay(&line->animation2->animation, delay + ANIMATION_OUT_IN_DELAY);
-	animation_set_curve(&line->animation2->animation, AnimationCurveEaseOut); // Deaccelerate
+	Animation *animation2 = property_animation_get_animation(line->animation2);
+	animation_set_duration(animation2, ANIMATION_DURATION);
+	animation_set_delay(animation2, delay + ANIMATION_OUT_IN_DELAY);
+	animation_set_curve(animation2, AnimationCurveEaseOut); // Deaccelerate
 
 	// Set a handler to rearrange layers after animation is finished
-	animation_set_handlers(&line->animation2->animation, (AnimationHandlers) {
+	animation_set_handlers(animation2, (AnimationHandlers) {
 		.stopped = (AnimationStoppedHandler)animationStoppedHandler
 	}, current);
 
 	// Start the animations
-	animation_schedule(&line->animation1->animation);
-	animation_schedule(&line->animation2->animation);	
+	animation_schedule(animation1);
+	animation_schedule(animation2);
 }
 
 static void updateLayerText(TextLayer* layer, char* text)
@@ -158,11 +162,50 @@ static GTextAlignment lookup_text_alignment(int align_key)
 	return alignment;
 }
 
+static GColor colour_from_rgb(int rgb)
+{
+#ifdef PBL_COLOR
+	return GColorFromRGB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+#else
+	return rgb == 0x000000 ? GColorBlack : GColorWhite;
+#endif
+}
+
+static const char *bold_font_key_for_choice(FontChoice choice)
+{
+	switch (choice)
+	{
+		case FONT_CHOICE_SHARP:
+			return FONT_KEY_GOTHIC_28_BOLD;
+		case FONT_CHOICE_COMPACT:
+			return FONT_KEY_GOTHIC_24_BOLD;
+		case FONT_CHOICE_TALL:
+			return FONT_KEY_BITHAM_42_BOLD;
+		default:
+			return FONT_KEY_BITHAM_42_BOLD;
+	}
+}
+
+static const char *light_font_key_for_choice(FontChoice choice)
+{
+	switch (choice)
+	{
+		case FONT_CHOICE_SHARP:
+			return FONT_KEY_GOTHIC_28;
+		case FONT_CHOICE_COMPACT:
+			return FONT_KEY_GOTHIC_24;
+		case FONT_CHOICE_TALL:
+			return FONT_KEY_BITHAM_42_LIGHT;
+		default:
+			return FONT_KEY_BITHAM_42_LIGHT;
+	}
+}
+
 // Configure bold line of text
 static void configureBoldLayer(TextLayer *textlayer)
 {
-	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
-	text_layer_set_text_color(textlayer, GColorWhite);
+	text_layer_set_font(textlayer, fonts_get_system_font(bold_font_key_for_choice(render_font_choice)));
+	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
 }
@@ -170,16 +213,34 @@ static void configureBoldLayer(TextLayer *textlayer)
 // Configure light line of text
 static void configureLightLayer(TextLayer *textlayer)
 {
-	text_layer_set_font(textlayer, fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT));
-	text_layer_set_text_color(textlayer, GColorWhite);
+	text_layer_set_font(textlayer, fonts_get_system_font(light_font_key_for_choice(render_font_choice)));
+	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
+}
+
+static void apply_window_colours(void)
+{
+	window_set_background_color(window, colour_from_rgb(background_color));
+}
+
+static void apply_layer_styles(void)
+{
+	for (int i = 0; i < NUM_LINES; i++)
+	{
+		configureLightLayer(lines[i].currentLayer);
+		configureLightLayer(lines[i].nextLayer);
+		layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
+		layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
+	}
 }
 
 // Configure the layers for the given text
 static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format[])
 {
 	int numLines = 0;
+	render_font_choice = text_font_choice_that_fits(screen_bounds.size.w, screen_bounds.size.h,
+		PBL_IF_ROUND_ELSE(true, false), font_choice, text);
 
 	// Set bold layer.
 	int i;
@@ -201,105 +262,15 @@ static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format
 	}
 	numLines = i;
 
-	// Calculate y position of top Line
-	int ypos = (168 - numLines * ROW_HEIGHT) / 2 - TOP_MARGIN;
-
 	// Set y positions for the lines
 	for (int i = 0; i < numLines; i++)
 	{
-		layer_set_frame((Layer *)lines[i].nextLayer, GRect(144, ypos, 144, 50));
-		ypos += ROW_HEIGHT;
+		TextFrame frame = text_frame_for_line(screen_bounds.size.w, screen_bounds.size.h,
+			PBL_IF_ROUND_ELSE(true, false), render_font_choice, numLines, i);
+		layer_set_frame((Layer *)lines[i].nextLayer, GRect(screen_bounds.size.w, frame.y, frame.w, frame.h));
 	}
 
 	return numLines;
-}
-
-static void time_to_lines(int hours, int minutes, int seconds, char lines[NUM_LINES][BUFFER_SIZE], char format[])
-{
-	int length = NUM_LINES * BUFFER_SIZE + 1;
-	char timeStr[length];
-	time_to_words(lang, hours, minutes, seconds, timeStr, length);
-	
-	// Empty all lines
-	for (int i = 0; i < NUM_LINES; i++)
-	{
-		lines[i][0] = '\0';
-	}
-
-	char *start = timeStr;
-	char *end = strstr(start, " ");
-	int l = 0;
-	while (end != NULL && l < NUM_LINES) {
-		// Check word for bold prefix
-		if (*start == '*' && end - start > 1)
-		{
-			// Mark line bold and move start to the first character of the word
-			format[l] = 'b';
-			start++;
-		}
-		else
-		{
-			// Mark line normal
-			format[l] = ' ';
-		}
-
-		// Can we add another word to the line?
-		if (format[l] == ' ' && *(end + 1) != '*'    // are both lines formatted normal?
-			&& end - start < LINE_APPEND_LIMIT - 1)  // is the first word is short enough?
-		{
-			// See if next word fits
-			char *try = strstr(end + 1, " ");
-			if (try != NULL && try - start <= LINE_APPEND_LIMIT)
-			{
-				end = try;
-			}
-		}
-
-		// copy to line
-		*end = '\0';
-		strcpy(lines[l++], start);
-
-		// Look for next word
-		start = end + 1;
-		end = strstr(start, " ");
-	}
-	
-}
-
-// Make a date string
-static void date_to_lines(int day, int date, int month, char lines[NUM_LINES][BUFFER_SIZE], char format[]) {
-  int length = NUM_LINES * BUFFER_SIZE + 1;
-  char dateStr[length];
-  
-  // Empty all lines
-	for (int i = 0; i < NUM_LINES; i++)
-	{
-		lines[i][0] = '\0';
-    format[i] = ' ';
-	}
-  format[0] = 'b';
-  
-  date_to_words(lang, day, date, month, dateStr, length);
-  
-  char *start = dateStr;
-	char *end = strstr(start, " ");
-	int l = 0;
-	while (end != NULL && l < NUM_LINES) {
-    // See if next word fits
-    char *try = strstr(end + 1, " ");
-    if (try != NULL && try - start <= LINE_APPEND_LIMIT)
-    {
-      end = try;
-    }
-
-		// copy to line
-		*end = '\0';
-		strcpy(lines[l++], start);
-
-		// Look for next word
-		start = end + 1;
-		end = strstr(start, " ");
-	}
 }
 
 // Update screen based on new time
@@ -310,11 +281,11 @@ static void display_time(struct tm *t)
   char format[NUM_LINES];
   
   if (showTime || dateTimeout > 1) {
-  	time_to_lines(t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
+  	time_to_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
     dateTimeout = 0;
     showTime = true;
   } else {
-    date_to_lines(t->tm_wday, t->tm_mday, t->tm_mon, textLine, format);
+    date_to_lines(lang, t->tm_wday, t->tm_mday, t->tm_mon, textLine, format);
   }
   
   int nextNLines = configureLayersForText(textLine, format);
@@ -345,7 +316,7 @@ static void initLineForStart(Line* line)
 
 	// Move current layer to screen;
 	GRect rect = layer_get_frame((Layer *)line->currentLayer);
-	rect.origin.x = 0;
+	rect.origin.x = (screen_bounds.size.w - rect.size.w) / 2;
 	layer_set_frame((Layer *)line->currentLayer, rect);
 }
 
@@ -356,7 +327,7 @@ static void display_initial_time(struct tm *t)
 	char textLine[NUM_LINES][BUFFER_SIZE];
 	char format[NUM_LINES];
 
-	time_to_lines(t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
+	time_to_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
 
 	// This configures the nextLayer for each line
 	currentNLines = configureLayersForText(textLine, format);
@@ -456,12 +427,20 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			}
 			break;
 		case INVERT_KEY:
-			invert = new_tuple->value->uint8 == 1;
-			persist_write_bool(INVERT_KEY, invert);
-			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set invert: %u", invert ? 1 : 0);
-
-			layer_set_hidden(inverter_layer_get_layer(inverter_layer), !invert);
-			layer_mark_dirty(inverter_layer_get_layer(inverter_layer));
+			if (new_tuple->value->uint8 == 1)
+			{
+				foreground_color = 0x000000;
+				background_color = 0xFFFFFF;
+			}
+			else
+			{
+				foreground_color = 0xFFFFFF;
+				background_color = 0x000000;
+			}
+			persist_write_int(FOREGROUND_COLOR_KEY, foreground_color);
+			persist_write_int(BACKGROUND_COLOR_KEY, background_color);
+			apply_window_colours();
+			apply_layer_styles();
 			break;
 		case LANGUAGE_KEY:
 			lang = (Language) new_tuple->value->uint8;
@@ -472,14 +451,38 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			{
 				display_time(t);
 			}
+			break;
+		case FONT_CHOICE_KEY:
+			font_choice = (FontChoice) new_tuple->value->uint8;
+			if (font_choice >= FONT_CHOICE_COUNT)
+			{
+				font_choice = FONT_CHOICE_CLASSIC;
+			}
+			persist_write_int(FONT_CHOICE_KEY, font_choice);
+			apply_layer_styles();
+			if (t)
+			{
+				display_time(t);
+			}
+			break;
+		case FOREGROUND_COLOR_KEY:
+			foreground_color = new_tuple->value->int32;
+			persist_write_int(FOREGROUND_COLOR_KEY, foreground_color);
+			apply_layer_styles();
+			break;
+		case BACKGROUND_COLOR_KEY:
+			background_color = new_tuple->value->int32;
+			persist_write_int(BACKGROUND_COLOR_KEY, background_color);
+			apply_window_colours();
+			break;
 	}
 }
 
 static void init_line(Line* line)
 {
 	// Create layers with dummy position to the right of the screen
-	line->currentLayer = text_layer_create(GRect(144, 0, 144, 50));
-	line->nextLayer = text_layer_create(GRect(144, 0, 144, 50));
+	line->currentLayer = text_layer_create(GRect(screen_bounds.size.w, 0, screen_bounds.size.w, 50));
+	line->nextLayer = text_layer_create(GRect(screen_bounds.size.w, 0, screen_bounds.size.w, 50));
 
 	// Configure a style
 	configureLightLayer(line->currentLayer);
@@ -506,7 +509,8 @@ static void destroy_line(Line* line)
 static void window_load(Window *window)
 {
 	Layer *window_layer = window_get_root_layer(window);
-	GRect bounds = layer_get_frame(window_layer);
+	screen_bounds = layer_get_bounds(window_layer);
+	apply_window_colours();
 
 	// Init and load lines
 	for (int i = 0; i < NUM_LINES; i++)
@@ -515,10 +519,6 @@ static void window_load(Window *window)
 		layer_add_child(window_layer, (Layer *)lines[i].currentLayer);
 		layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
 	}
-
-	inverter_layer = inverter_layer_create(bounds);
-	layer_set_hidden(inverter_layer_get_layer(inverter_layer), !invert);
-	layer_add_child(window_layer, inverter_layer_get_layer(inverter_layer));
 
 	// Configure time on init
 	time_t raw_time;
@@ -529,8 +529,11 @@ static void window_load(Window *window)
 
 	Tuplet initial_values[] = {
 		TupletInteger(TEXT_ALIGN_KEY, (uint8_t) text_align),
-		TupletInteger(INVERT_KEY,     (uint8_t) invert ? 1 : 0),
-		TupletInteger(LANGUAGE_KEY,   (uint8_t) lang)
+		TupletInteger(INVERT_KEY,     (uint8_t) 0),
+		TupletInteger(LANGUAGE_KEY,   (uint8_t) lang),
+		TupletInteger(FONT_CHOICE_KEY, (uint8_t) font_choice),
+		TupletInteger(FOREGROUND_COLOR_KEY, foreground_color),
+		TupletInteger(BACKGROUND_COLOR_KEY, background_color)
 	};
 
 	app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values, ARRAY_LENGTH(initial_values),
@@ -541,8 +544,6 @@ static void window_unload(Window *window)
 {
 	app_sync_deinit(&sync);
 
-	// Free layers
-	inverter_layer_destroy(inverter_layer);
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		destroy_line(&lines[i]);
@@ -556,19 +557,41 @@ static void handle_init() {
 		text_align = persist_read_int(TEXT_ALIGN_KEY);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read text alignment from store: %u", text_align);
 	}
-	if (persist_exists(INVERT_KEY))
-	{
-		invert = persist_read_bool(INVERT_KEY);
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read invert from store: %u", invert ? 1 : 0);
-	}
 	if (persist_exists(LANGUAGE_KEY))
 	{
 		lang = (Language) persist_read_int(LANGUAGE_KEY);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read language from store: %u", lang);
 	}
+	if (persist_exists(FONT_CHOICE_KEY))
+	{
+		font_choice = (FontChoice) persist_read_int(FONT_CHOICE_KEY);
+		if (font_choice >= FONT_CHOICE_COUNT)
+		{
+			font_choice = FONT_CHOICE_CLASSIC;
+		}
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read font choice from store: %u", font_choice);
+	}
+	if (persist_exists(FOREGROUND_COLOR_KEY))
+	{
+		foreground_color = persist_read_int(FOREGROUND_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read foreground colour from store: %u", foreground_color);
+	}
+	else if (persist_exists(INVERT_KEY) && persist_read_bool(INVERT_KEY))
+	{
+		foreground_color = 0x000000;
+	}
+	if (persist_exists(BACKGROUND_COLOR_KEY))
+	{
+		background_color = persist_read_int(BACKGROUND_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read background colour from store: %u", background_color);
+	}
+	else if (persist_exists(INVERT_KEY) && persist_read_bool(INVERT_KEY))
+	{
+		background_color = 0xFFFFFF;
+	}
 
 	window = window_create();
-	window_set_background_color(window, GColorBlack);
+	window_set_background_color(window, colour_from_rgb(background_color));
 	window_set_window_handlers(window, (WindowHandlers) {
 		.load = window_load,
 		.unload = window_unload
@@ -607,4 +630,3 @@ int main(void)
 	app_event_loop();
 	handle_deinit();
 }
-

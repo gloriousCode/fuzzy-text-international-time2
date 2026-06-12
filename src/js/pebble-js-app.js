@@ -1,4 +1,4 @@
-var VERSION = "1.2.1";
+var VERSION = "1.4.0";
 
 var isReady = false;
 var callbacks = [];
@@ -18,6 +18,27 @@ var langs = {
   fr:    5,
   no:    6,
   sv:    7
+};
+
+var fonts = {
+  classic: 0,
+  sharp:   1,
+  compact: 2,
+  tall:    3
+};
+
+var colourValues = {
+  black:     0x000000,
+  white:     0xFFFFFF,
+  red:       0xFF0000,
+  orange:    0xFF5500,
+  yellow:    0xFFFF00,
+  green:     0x00AA00,
+  mint:      0x55FFAA,
+  cyan:      0x00AAFF,
+  blue:      0x0055FF,
+  purple:    0xAA00FF,
+  magenta:   0xFF00AA
 };
 
 function readyCallback(event) {
@@ -41,10 +62,13 @@ function webviewclosed(event) {
   var resp = event.response;
   console.log('configuration response: '+ resp + ' ('+ typeof resp +')');
 
-  var options = JSON.parse(resp);
+  var options = parseConfigurationResponse(resp);
   if (typeof options.invert === 'undefined' &&
       typeof options.text_align === 'undefined' &&
-      typeof options.lang === 'undefined') {
+      typeof options.lang === 'undefined' &&
+      typeof options.font === 'undefined' &&
+      typeof options.foreground_colour === 'undefined' &&
+      typeof options.background_colour === 'undefined') {
     return;
   }
 
@@ -54,6 +78,15 @@ function webviewclosed(event) {
     var message = prepareConfiguration(resp);
     transmitConfiguration(message);
   });
+}
+
+function parseConfigurationResponse(resp) {
+  try {
+    return JSON.parse(resp);
+  }
+  catch (err) {
+    return JSON.parse(decodeURIComponent(resp));
+  }
 }
 
 // Retrieves stored configuration from localStorage.
@@ -71,10 +104,15 @@ function setOptions(options) {
 // a JSON message to send to the watch face.
 function prepareConfiguration(serialized_settings) {
   var settings = JSON.parse(serialized_settings);
+  var foreground = settings.foreground_colour || (settings.invert ? "black" : "white");
+  var background = settings.background_colour || (settings.invert ? "white" : "black");
   return {
     "0": settings.invert ? 1 : 0,
-    "1": alignments[settings.text_align],
-    "2": langs[settings.lang]
+    "1": alignments[settings.text_align || "center"],
+    "2": langs[settings.lang || "en_US"],
+    "3": fonts[settings.font || "classic"],
+    "4": colourValues[foreground],
+    "5": colourValues[background]
   };
 }
 
