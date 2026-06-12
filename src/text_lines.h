@@ -5,5 +5,9 @@
 
 void time_to_lines(Language lang, int hours, int minutes, int seconds,
     char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[]);
+void time_to_lines_with_limit(Language lang, int hours, int minutes, int seconds,
+    int line_limit, char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[]);
 void date_to_lines(Language lang, int day, int date, int month,
     char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[]);
+void date_to_lines_with_limit(Language lang, int day, int date, int month,
+    int line_limit, char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[]);

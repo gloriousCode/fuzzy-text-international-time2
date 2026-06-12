@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define LINE_APPEND_MARGIN 0
-#define LINE_APPEND_LIMIT (FUZZY_TEXT_LINE_LENGTH - LINE_APPEND_MARGIN)
 
 static void copy_line(char line[FUZZY_TEXT_BUFFER_SIZE], const char *start)
 {
@@ -11,16 +10,28 @@ static void copy_line(char line[FUZZY_TEXT_BUFFER_SIZE], const char *start)
   line[FUZZY_TEXT_LINE_LENGTH] = '\0';
 }
 
-void time_to_lines(Language lang, int hours, int minutes, int seconds,
+static int bounded_line_limit(int line_limit)
+{
+  if (line_limit <= 0 || line_limit > FUZZY_TEXT_LINE_LENGTH) {
+    return FUZZY_TEXT_LINE_LENGTH;
+  }
+
+  return line_limit;
+}
+
+void time_to_lines_with_limit(Language lang, int hours, int minutes, int seconds,
+    int line_limit,
     char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[])
 {
-  int length = FUZZY_TEXT_NUM_LINES * FUZZY_TEXT_BUFFER_SIZE + 1;
+  int append_limit = bounded_line_limit(line_limit) - LINE_APPEND_MARGIN;
+  int length = 96;
   char timeStr[length];
   time_to_words(lang, hours, minutes, seconds, timeStr, length);
 
   for (int i = 0; i < FUZZY_TEXT_NUM_LINES; i++)
   {
     lines[i][0] = '\0';
+    format[i] = ' ';
   }
 
   char *start = timeStr;
@@ -38,10 +49,10 @@ void time_to_lines(Language lang, int hours, int minutes, int seconds,
     }
 
     if (format[line] == ' ' && *(end + 1) != '*'
-        && end - start < LINE_APPEND_LIMIT - 1)
+        && end - start < append_limit - 1)
     {
       char *try = strstr(end + 1, " ");
-      if (try != NULL && try - start <= LINE_APPEND_LIMIT)
+      if (try != NULL && try - start <= append_limit)
       {
         end = try;
       }
@@ -55,10 +66,19 @@ void time_to_lines(Language lang, int hours, int minutes, int seconds,
   }
 }
 
-void date_to_lines(Language lang, int day, int date, int month,
+void time_to_lines(Language lang, int hours, int minutes, int seconds,
     char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[])
 {
-  int length = FUZZY_TEXT_NUM_LINES * FUZZY_TEXT_BUFFER_SIZE + 1;
+  time_to_lines_with_limit(lang, hours, minutes, seconds, FUZZY_TEXT_LINE_LENGTH,
+      lines, format);
+}
+
+void date_to_lines_with_limit(Language lang, int day, int date, int month,
+    int line_limit,
+    char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[])
+{
+  int append_limit = bounded_line_limit(line_limit) - LINE_APPEND_MARGIN;
+  int length = 96;
   char dateStr[length];
 
   for (int i = 0; i < FUZZY_TEXT_NUM_LINES; i++)
@@ -75,7 +95,7 @@ void date_to_lines(Language lang, int day, int date, int month,
   int line = 0;
   while (end != NULL && line < FUZZY_TEXT_NUM_LINES) {
     char *try = strstr(end + 1, " ");
-    if (try != NULL && try - start <= LINE_APPEND_LIMIT)
+    if (try != NULL && try - start <= append_limit)
     {
       end = try;
     }
@@ -86,4 +106,11 @@ void date_to_lines(Language lang, int day, int date, int month,
     start = end + 1;
     end = strstr(start, " ");
   }
+}
+
+void date_to_lines(Language lang, int day, int date, int month,
+    char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE], char format[])
+{
+  date_to_lines_with_limit(lang, day, date, month, FUZZY_TEXT_LINE_LENGTH,
+      lines, format);
 }

@@ -149,6 +149,20 @@ static bool needToUpdateLine(Line *line, char *nextValue)
 	return false;
 }
 
+static int count_text_lines(char text[NUM_LINES][BUFFER_SIZE])
+{
+	int count = 0;
+
+	for (int i = 0; i < NUM_LINES; i++) {
+		if (strlen(text[i]) == 0) {
+			break;
+		}
+		count++;
+	}
+
+	return count;
+}
+
 static GTextAlignment lookup_text_alignment(int align_key)
 {
 	GTextAlignment alignment;
@@ -270,12 +284,128 @@ static void apply_layer_styles(void)
 	forceDisplayUpdate = true;
 }
 
+static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE])
+{
+	return text_font_choice_that_fits(screen_bounds.size.w, screen_bounds.size.h,
+		PBL_IF_ROUND_ELSE(true, false), font_choice, text);
+}
+
+static bool should_use_high_resolution_layout(void)
+{
+	return screen_bounds.size.w >= 200 && screen_bounds.size.h >= 200;
+}
+
+static int font_visual_rank(FontChoice choice)
+{
+	switch (choice) {
+		case FONT_CHOICE_LARGE:
+			return 0;
+		case FONT_CHOICE_MEDIUM:
+			return 1;
+		case FONT_CHOICE_TALL:
+			return 2;
+		case FONT_CHOICE_CLASSIC:
+			return 3;
+		case FONT_CHOICE_SHARP:
+			return 4;
+		case FONT_CHOICE_COMPACT:
+			return 5;
+		default:
+			return 6;
+	}
+}
+
+static void copy_text_lines(char destination[NUM_LINES][BUFFER_SIZE],
+		char destination_format[], char source[NUM_LINES][BUFFER_SIZE],
+		char source_format[])
+{
+	for (int i = 0; i < NUM_LINES; i++) {
+		strncpy(destination[i], source[i], BUFFER_SIZE);
+		destination[i][BUFFER_SIZE - 1] = '\0';
+		destination_format[i] = source_format[i];
+	}
+}
+
+static void choose_time_lines(Language language, int hours, int minutes, int seconds,
+		char text[NUM_LINES][BUFFER_SIZE], char format[])
+{
+	static const int high_resolution_limits[] = { 7, 8, 9, 10, FUZZY_TEXT_LINE_LENGTH };
+	char candidate[NUM_LINES][BUFFER_SIZE];
+	char candidate_format[NUM_LINES];
+	FontChoice best_font = FONT_CHOICE_SMALL;
+	int best_line_count = 0;
+	bool found = false;
+
+	if (!should_use_high_resolution_layout()) {
+		time_to_lines(language, hours, minutes, seconds, text, format);
+		render_font_choice = choose_render_font(text);
+		return;
+	}
+
+	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
+		time_to_lines_with_limit(language, hours, minutes, seconds, high_resolution_limits[i],
+			candidate, candidate_format);
+		FontChoice candidate_font = choose_render_font(candidate);
+		int candidate_line_count = count_text_lines(candidate);
+
+		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
+				|| (candidate_font == best_font && candidate_line_count > best_line_count)) {
+			copy_text_lines(text, format, candidate, candidate_format);
+			best_font = candidate_font;
+			best_line_count = candidate_line_count;
+			found = true;
+		}
+
+		if (candidate_font == FONT_CHOICE_LARGE && candidate_line_count >= 3) {
+			break;
+		}
+	}
+
+	render_font_choice = best_font;
+}
+
+static void choose_date_lines(Language language, int day, int date, int month,
+		char text[NUM_LINES][BUFFER_SIZE], char format[])
+{
+	static const int high_resolution_limits[] = { 7, 8, 9, 10, FUZZY_TEXT_LINE_LENGTH };
+	char candidate[NUM_LINES][BUFFER_SIZE];
+	char candidate_format[NUM_LINES];
+	FontChoice best_font = FONT_CHOICE_SMALL;
+	int best_line_count = 0;
+	bool found = false;
+
+	if (!should_use_high_resolution_layout()) {
+		date_to_lines(language, day, date, month, text, format);
+		render_font_choice = choose_render_font(text);
+		return;
+	}
+
+	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
+		date_to_lines_with_limit(language, day, date, month, high_resolution_limits[i],
+			candidate, candidate_format);
+		FontChoice candidate_font = choose_render_font(candidate);
+		int candidate_line_count = count_text_lines(candidate);
+
+		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
+				|| (candidate_font == best_font && candidate_line_count > best_line_count)) {
+			copy_text_lines(text, format, candidate, candidate_format);
+			best_font = candidate_font;
+			best_line_count = candidate_line_count;
+			found = true;
+		}
+
+		if (candidate_font == FONT_CHOICE_LARGE && candidate_line_count >= 3) {
+			break;
+		}
+	}
+
+	render_font_choice = best_font;
+}
+
 // Configure the layers for the given text
 static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format[])
 {
 	int numLines = 0;
-	render_font_choice = text_font_choice_that_fits(screen_bounds.size.w, screen_bounds.size.h,
-		PBL_IF_ROUND_ELSE(true, false), font_choice, text);
 
 	// Set bold layer.
 	int i;
@@ -316,11 +446,11 @@ static void display_time(struct tm *t)
   char format[NUM_LINES];
   
   if (showTime || dateTimeout > 1) {
-  	time_to_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
+  	choose_time_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
     dateTimeout = 0;
     showTime = true;
   } else {
-    date_to_lines(lang, t->tm_wday, t->tm_mday, t->tm_mon, textLine, format);
+    choose_date_lines(lang, t->tm_wday, t->tm_mday, t->tm_mon, textLine, format);
   }
   
   int nextNLines = configureLayersForText(textLine, format);
@@ -363,7 +493,7 @@ static void display_initial_time(struct tm *t)
 	char textLine[NUM_LINES][BUFFER_SIZE];
 	char format[NUM_LINES];
 
-	time_to_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
+	choose_time_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
 
 	// This configures the nextLayer for each line
 	currentNLines = configureLayersForText(textLine, format);

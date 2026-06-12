@@ -1,9 +1,20 @@
 Fuzzy Text Two
 ==============
 
-This is a watchface for the [Pebble][].  It is originally based on the
-[PebbleTextWatch][] by Mihai Dumitrache, which reproduced the look of
-the Text Watch that comes standard with the Pebble.
+Fuzzy Text Two is a modernised Pebble watchface built from the classic
+fuzzy text lineage.  The goal of this project is to keep the simple,
+word-based feel of the original Text Watch style while updating it for
+newer PebbleOS targets, especially Emery and Gabbro.
+
+The original watchface was designed around older 144x168 screens.  This
+version adds sharper high-resolution text, larger bundled fonts for
+modern displays, colour customisation, and layout checks that keep the
+words inside the screen even when languages, font choices, or round
+displays make the text harder to fit.
+
+This project is originally based on the [PebbleTextWatch][] by Mihai
+Dumitrache, which reproduced the look of the Text Watch that comes
+standard with the [Pebble][].
 
 [Pebble]: https://getpebble.com/
 [PebbleTextWatch]: https://github.com/wearewip/PebbleTextWatch
@@ -16,27 +27,34 @@ language, Swedish.
 
 [Swedish fuzzy text watch]: https://github.com/Sarastro72/Swedish-Fuzzy-Text-watch
 
-This version builds upon the work by Mihai and Mattias: it supports
-multiple languages, and provides options to change the visual style.
+This version builds upon the work by Mihai and Mattias by carrying the
+old watchface forward for current Rebble/PebbleOS development.
 
 Features:
 
  - Fuzzy time in natural language
- - The large and easy to read fonts of the original Text Watch
+ - Modern PebbleOS target support, including Emery and Gabbro
+ - Sharper high-resolution word rendering with bundled Roboto fonts
+ - Larger text on newer screens without relying on bitmap scaling
+ - Fit-safe line breaking across one to four lines of text
+ - Automatic fallback to smaller font tiers when a line would overflow
+ - Foreground and background colour customisation
+ - Font presets and visual style presets
  - Nice staggered animation
- - Between one and four lines of text, depending on need
- - Smaller words may share a single line (such as "fem i")
+ - Multiple languages inherited from the original international face
 
 The following options can be configured, using the Pebble app on your
 phone:
 
 - Font preset
+- Visual preset
 - Foreground and background colours
 - Text alignment (centered, left, or right)
 - Language
 
 At this time the included languages are:
 
+- Catalan
 - English
 - French
 - German
@@ -45,14 +63,25 @@ At this time the included languages are:
 - Swedish
 
 
-Authors
--------
+Authorship
+----------
 
-Thanks to all of the people who made this watchface possible:
+Fuzzy Text Two is maintained by [gloriousCode][gloriousCode].  This
+modernised version updates the old watchface for current PebbleOS
+targets, adds colour customisation, and improves text resolution on
+newer screens.
+
+[gloriousCode]: https://github.com/gloriousCode
+
+
+Acknowledgements
+----------------
+
+Thanks to the people whose earlier work made this watchface possible:
 
 - [Mihai Dumitrache][Mihai], implemented an open source version of Text Watch
 - [Mattias Bäcklund][Mattias], created Swedish fuzzy text watch
-- [Jesse Hallett][Jesse], added configuration options and multiple language support
+- [Jesse Hallett][Jesse], added earlier configuration options and multiple language support
 - [Filip Horvei][iFlips], provided Norwegian translation
 - Tomi De Lucca, discovered fix for a severe iOS bug & assisted with Spanish translation
 

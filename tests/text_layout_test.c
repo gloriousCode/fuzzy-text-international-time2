@@ -204,6 +204,22 @@ static void assert_high_resolution_time_uses_large_fonts(void)
   }
 }
 
+static void assert_high_resolution_short_lines_preserve_large_fonts(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+  const ScreenCase *gabbro = &screen_cases[6];
+
+  time_to_lines_with_limit(EN_GB, 1, 15, 0, 7, lines, format);
+
+  assert(strcmp(lines[0], "quarter") == 0);
+  assert(strcmp(lines[1], "past") == 0);
+  assert(strcmp(lines[2], "one") == 0);
+  assert(format[2] == 'b');
+  assert(text_font_choice_that_fits(gabbro->width, gabbro->height,
+      gabbro->round, FONT_CHOICE_CLASSIC, lines) == FONT_CHOICE_LARGE);
+}
+
 int main(void)
 {
   signal(SIGSEGV, print_crash_context);
@@ -212,6 +228,7 @@ int main(void)
   assert_date_lines_fit();
   assert_time_lines_mark_hour_bold();
   assert_high_resolution_time_uses_large_fonts();
+  assert_high_resolution_short_lines_preserve_large_fonts();
 
   puts("text layout compatibility checks passed");
   return 0;
