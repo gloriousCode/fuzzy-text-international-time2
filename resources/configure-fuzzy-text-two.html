@@ -320,7 +320,15 @@
 
 		function applyOptions() {
 			var optionsParam = getParam('options');
-			var opts = optionsParam ? JSON.parse(optionsParam) : {};
+			var opts = {};
+			if (optionsParam) {
+				try {
+					opts = JSON.parse(optionsParam);
+				}
+				catch (err) {
+					opts = {};
+				}
+			}
 			if (opts && opts.text_align) {
 				setChecked('align', opts.text_align);
 			}

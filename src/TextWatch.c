@@ -72,6 +72,17 @@ static bool forceDisplayUpdate = false;
 static bool showTime = true;
 static int dateTimeout = 0;
 
+static void destroy_property_animation(PropertyAnimation **animation)
+{
+	if (*animation == NULL) {
+		return;
+	}
+
+	animation_unschedule(property_animation_get_animation(*animation));
+	property_animation_destroy(*animation);
+	*animation = NULL;
+}
+
 // Animation handler
 static void animationStoppedHandler(struct Animation *animation, bool finished, void *context)
 {
@@ -88,19 +99,16 @@ static void makeAnimationsForLayer(Line *line, int delay)
 	TextLayer *next = line->nextLayer;
 
 	// Destroy old animations
-	if (line->animation1 != NULL)
-	{
-		 property_animation_destroy(line->animation1);
-	}
-	if (line->animation2 != NULL)
-	{
-		 property_animation_destroy(line->animation2);
-	}
+	destroy_property_animation(&line->animation1);
+	destroy_property_animation(&line->animation2);
 
 	// Configure animation for current layer to move out
 	GRect rect = layer_get_frame((Layer *)current);
 	rect.origin.x =  -screen_bounds.size.w;
 	line->animation1 = property_animation_create_layer_frame((Layer *)current, NULL, &rect);
+	if (line->animation1 == NULL) {
+		return;
+	}
 	Animation *animation1 = property_animation_get_animation(line->animation1);
 	animation_set_duration(animation1, ANIMATION_DURATION);
 	animation_set_delay(animation1, delay);
@@ -110,6 +118,10 @@ static void makeAnimationsForLayer(Line *line, int delay)
 	GRect rect2 = layer_get_frame((Layer *)next);
 	rect2.origin.x = (screen_bounds.size.w - rect2.size.w) / 2;
 	line->animation2 = property_animation_create_layer_frame((Layer *)next, NULL, &rect2);
+	if (line->animation2 == NULL) {
+		destroy_property_animation(&line->animation1);
+		return;
+	}
 	Animation *animation2 = property_animation_get_animation(line->animation2);
 	animation_set_duration(animation2, ANIMATION_DURATION);
 	animation_set_delay(animation2, delay + ANIMATION_OUT_IN_DELAY);
@@ -128,7 +140,8 @@ static void makeAnimationsForLayer(Line *line, int delay)
 static void updateLayerText(TextLayer* layer, char* text)
 {
 	const char* layerText = text_layer_get_text(layer);
-	strcpy((char*)layerText, text);
+	strncpy((char*)layerText, text, BUFFER_SIZE);
+	((char*)layerText)[BUFFER_SIZE - 1] = '\0';
 	// To mark layer dirty
 	text_layer_set_text(layer, layerText);
     //layer_mark_dirty(&layer->layer);
@@ -187,6 +200,35 @@ static GTextAlignment lookup_text_alignment(int align_key)
 			break;
 	}
 	return alignment;
+}
+
+static int valid_text_align(int align_key)
+{
+	switch (align_key) {
+		case TEXT_ALIGN_LEFT:
+		case TEXT_ALIGN_RIGHT:
+		case TEXT_ALIGN_CENTER:
+			return align_key;
+		default:
+			return TEXT_ALIGN_CENTER;
+	}
+}
+
+static Language valid_language(Language language)
+{
+	switch (language) {
+		case CA:
+		case DE:
+		case EN_GB:
+		case EN_US:
+		case ES:
+		case FR:
+		case NO:
+		case SV:
+			return language;
+		default:
+			return EN_GB;
+	}
 }
 
 static GColor colour_from_rgb(int rgb)
@@ -716,7 +758,7 @@ static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 	GTextAlignment alignment;
 	switch (key) {
 		case TEXT_ALIGN_KEY:
-			text_align = new_tuple->value->uint8;
+			text_align = valid_text_align(new_tuple->value->uint8);
 			persist_write_int(TEXT_ALIGN_KEY, text_align);
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set text alignment: %u", text_align);
 
@@ -746,7 +788,7 @@ static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 			apply_layer_styles();
 			break;
 		case LANGUAGE_KEY:
-			lang = (Language) new_tuple->value->uint8;
+			lang = valid_language((Language) new_tuple->value->uint8);
 			persist_write_int(LANGUAGE_KEY, lang);
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set language: %u", lang);
 			break;
@@ -835,6 +877,9 @@ static void init_line(Line* line)
 
 static void destroy_line(Line* line)
 {
+	destroy_property_animation(&line->animation1);
+	destroy_property_animation(&line->animation2);
+
 	// Free layers
 	text_layer_destroy(line->currentLayer);
 	text_layer_destroy(line->nextLayer);
@@ -895,12 +940,12 @@ static void handle_init() {
 	// Load settings from persistent storage
 	if (persist_exists(TEXT_ALIGN_KEY))
 	{
-		text_align = persist_read_int(TEXT_ALIGN_KEY);
+		text_align = valid_text_align(persist_read_int(TEXT_ALIGN_KEY));
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read text alignment from store: %u", text_align);
 	}
 	if (persist_exists(LANGUAGE_KEY))
 	{
-		lang = (Language) persist_read_int(LANGUAGE_KEY);
+		lang = valid_language((Language) persist_read_int(LANGUAGE_KEY));
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read language from store: %u", lang);
 	}
 	if (persist_exists(FONT_CHOICE_KEY))
@@ -939,7 +984,7 @@ static void handle_init() {
 	});
 
 	// Initialize message queue
-	const int inbound_size = 64;
+	const int inbound_size = 128;
 	const int outbound_size = 64;
 	app_message_register_inbox_received(inbox_received_callback);
 	app_message_register_inbox_dropped(inbox_dropped_callback);
