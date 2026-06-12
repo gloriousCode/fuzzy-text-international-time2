@@ -1,5 +1,5 @@
 var VERSION = "1.4.0";
-var CONFIG_URL = "https://cdn.jsdelivr.net/gh/gloriousCode/fuzzy-text-international-time2@master/resources/configure-fuzzy-text.html";
+var CONFIG_URL = "https://gloriouscode.github.io/fuzzy-text-international-time2/resources/configure-fuzzy-text.html";
 
 var isReady = false;
 var callbacks = [];

@@ -11,6 +11,7 @@ typedef enum {
   FONT_CHOICE_SHARP = 1,
   FONT_CHOICE_COMPACT = 2,
   FONT_CHOICE_TALL = 3,
+  FONT_CHOICE_SMALL = 4,
   FONT_CHOICE_COUNT
 } FontChoice;
 

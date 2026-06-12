@@ -16,7 +16,12 @@ typedef struct {
 } ScreenCase;
 
 static const ScreenCase screen_cases[] = {
+  { "aplite", 144, 168, false },
+  { "basalt", 144, 168, false },
+  { "chalk", 180, 180, true },
+  { "diorite", 144, 168, false },
   { "emery", 200, 228, false },
+  { "flint", 144, 168, false },
   { "gabbro", 260, 260, true },
 };
 
@@ -132,12 +137,50 @@ static void assert_date_lines_fit(void)
   }
 }
 
+static void assert_time_lines_mark_hour_bold(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+
+  for (int language = CA; language <= SV; language++) {
+    current_language = language;
+    for (int hour = 0; hour < 24; hour++) {
+      current_hour = hour;
+      for (int minute = 0; minute < 60; minute += 5) {
+        current_label = "bold";
+        current_minute = minute;
+        time_to_lines((Language)language, hour, minute, 0, lines, format);
+
+        bool has_bold_line = false;
+        int line_count = count_lines(lines);
+        for (int i = 0; i < line_count; i++) {
+          if (format[i] == 'b') {
+            has_bold_line = true;
+            break;
+          }
+        }
+
+        if (!has_bold_line) {
+          fprintf(stderr, "missing bold language=%d hour=%d minute=%d lines=", language, hour, minute);
+          for (int i = 0; i < line_count; i++) {
+            fprintf(stderr, "[%s:%c]", lines[i], format[i]);
+          }
+          fprintf(stderr, "\n");
+        }
+
+        assert(has_bold_line);
+      }
+    }
+  }
+}
+
 int main(void)
 {
   signal(SIGSEGV, print_crash_context);
 
   assert_time_lines_fit();
   assert_date_lines_fit();
+  assert_time_lines_mark_hour_bold();
 
   puts("text layout compatibility checks passed");
   return 0;

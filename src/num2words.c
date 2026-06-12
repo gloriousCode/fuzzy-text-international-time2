@@ -18,7 +18,7 @@ static size_t append_string(char* buffer, const size_t length, const char* str) 
     return 0;
   }
 
-  size_t written = min(strlen(str), length - 1);
+  size_t written = min(strlen(str), length);
   strncat(buffer, str, written);
   return written;
 }
@@ -135,7 +135,7 @@ const char* get_rel(Language lang, int index) {
 
 void time_to_words(Language lang, int hours, int minutes, int seconds, char* words, size_t buffer_size) {
 
-  size_t remaining = buffer_size;
+  size_t remaining = buffer_size - 1;
   memset(words, 0, buffer_size);
 
   // We want to operate with a resolution of 30 seconds.  So multiply
@@ -178,7 +178,7 @@ const char* get_month(Language lang, int index) {
 }
 
 void date_to_words(Language lang, int day, int date, int month, char* words, size_t buffer_size) {
-  size_t remaining = buffer_size;
+  size_t remaining = buffer_size - 1;
   memset(words, 0, buffer_size);
   
   const char* stringday = get_day(lang, day);

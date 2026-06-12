@@ -55,6 +55,7 @@ static Line lines[NUM_LINES];
 static struct tm *t;
 
 static int currentNLines;
+static bool forceDisplayUpdate = false;
 
 static bool showTime = true;
 static int dateTimeout = 0;
@@ -181,6 +182,8 @@ static const char *bold_font_key_for_choice(FontChoice choice)
 			return FONT_KEY_GOTHIC_24_BOLD;
 		case FONT_CHOICE_TALL:
 			return FONT_KEY_BITHAM_42_BOLD;
+		case FONT_CHOICE_SMALL:
+			return FONT_KEY_GOTHIC_18_BOLD;
 		default:
 			return FONT_KEY_BITHAM_42_BOLD;
 	}
@@ -196,6 +199,8 @@ static const char *light_font_key_for_choice(FontChoice choice)
 			return FONT_KEY_GOTHIC_24;
 		case FONT_CHOICE_TALL:
 			return FONT_KEY_BITHAM_42_LIGHT;
+		case FONT_CHOICE_SMALL:
+			return FONT_KEY_GOTHIC_18;
 		default:
 			return FONT_KEY_BITHAM_42_LIGHT;
 	}
@@ -233,6 +238,7 @@ static void apply_layer_styles(void)
 		layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
 		layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
 	}
+	forceDisplayUpdate = true;
 }
 
 // Configure the layers for the given text
@@ -292,13 +298,14 @@ static void display_time(struct tm *t)
 
   int delay = 0;
   for (int i = 0; i < NUM_LINES; i++) {
-    if (nextNLines != currentNLines || needToUpdateLine(&lines[i], textLine[i])) {
+    if (forceDisplayUpdate || nextNLines != currentNLines || needToUpdateLine(&lines[i], textLine[i])) {
       updateLineTo(&lines[i], textLine[i], delay);
       delay += ANIMATION_STAGGER_TIME;
     }
   }
 
   currentNLines = nextNLines;
+  forceDisplayUpdate = false;
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction)

@@ -54,6 +54,13 @@ TextMetrics text_metrics_for_font_choice(FontChoice font_choice)
         .top_margin = 0,
         .max_glyph_width = 22,
       };
+    case FONT_CHOICE_SMALL:
+      return (TextMetrics) {
+        .row_height = 22,
+        .layer_height = 26,
+        .top_margin = 0,
+        .max_glyph_width = 10,
+      };
     default:
       return (TextMetrics) {
         .row_height = 37,
@@ -146,15 +153,22 @@ static FontChoice fallback_font_choice(FontChoice preferred, int attempt)
     FONT_CHOICE_CLASSIC,
     FONT_CHOICE_SHARP,
     FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SMALL,
   };
   static const FontChoice classic_fallbacks[] = {
     FONT_CHOICE_CLASSIC,
     FONT_CHOICE_SHARP,
     FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SMALL,
   };
   static const FontChoice sharp_fallbacks[] = {
     FONT_CHOICE_SHARP,
     FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SMALL,
+  };
+  static const FontChoice compact_fallbacks[] = {
+    FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SMALL,
   };
 
   switch (preferred) {
@@ -167,7 +181,11 @@ static FontChoice fallback_font_choice(FontChoice preferred, int attempt)
           ? sharp_fallbacks[attempt]
           : FONT_CHOICE_COMPACT;
     case FONT_CHOICE_COMPACT:
-      return FONT_CHOICE_COMPACT;
+      return attempt < (int)(sizeof(compact_fallbacks) / sizeof(compact_fallbacks[0]))
+          ? compact_fallbacks[attempt]
+          : FONT_CHOICE_SMALL;
+    case FONT_CHOICE_SMALL:
+      return FONT_CHOICE_SMALL;
     default:
       return attempt < (int)(sizeof(classic_fallbacks) / sizeof(classic_fallbacks[0]))
           ? classic_fallbacks[attempt]
