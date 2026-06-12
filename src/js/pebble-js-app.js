@@ -1,4 +1,4 @@
-var VERSION = "1.4.1";
+var VERSION = "1.4.2";
 var OPTIONS_STORAGE_KEY = "fuzzy-text-two-options-v2";
 var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-fuzzy-text-two.html";
 
@@ -43,6 +43,10 @@ var colourValues = {
   magenta:   0xFF00AA
 };
 
+function lookupValue(values, key, fallbackKey) {
+  return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : values[fallbackKey];
+}
+
 function readyCallback(event) {
   isReady = true;
   var callback;
@@ -60,7 +64,7 @@ function showConfiguration(event) {
 }
 
 function webviewclosed(event) {
-  var resp = event.response;
+  var resp = event && event.response;
   console.log('configuration response: '+ resp + ' ('+ typeof resp +')');
 
   var options = parseConfigurationResponse(resp);
@@ -83,29 +87,57 @@ function webviewclosed(event) {
 }
 
 function parseConfigurationResponse(resp) {
+  if (!resp) {
+    return {};
+  }
+
   try {
     return JSON.parse(resp);
   }
   catch (err) {
-    return JSON.parse(decodeURIComponent(resp));
+    try {
+      return JSON.parse(decodeURIComponent(resp));
+    }
+    catch (decodeErr) {
+      console.log('Unable to parse configuration response: ' + decodeErr.message);
+      return {};
+    }
   }
 }
 
 // Retrieves stored configuration from localStorage.
 function getOptions() {
-  return localStorage.getItem(OPTIONS_STORAGE_KEY) || ("{}");
+  try {
+    return localStorage.getItem(OPTIONS_STORAGE_KEY) || "{}";
+  }
+  catch (err) {
+    console.log('Unable to read options: ' + err.message);
+    return "{}";
+  }
 }
 
 // Stores options in localStorage.
 function setOptions(options) {
-  localStorage.setItem(OPTIONS_STORAGE_KEY, options);
+  try {
+    localStorage.setItem(OPTIONS_STORAGE_KEY, options);
+  }
+  catch (err) {
+    console.log('Unable to store options: ' + err.message);
+  }
 }
 
 // Takes a string containing serialized JSON as input.  This is the
 // format that is sent back from the configuration web UI.  Produces
 // a JSON message to send to the watch face.
 function prepareConfiguration(serialized_settings) {
-  var settings = JSON.parse(serialized_settings);
+  var settings = {};
+  try {
+    settings = JSON.parse(serialized_settings || "{}");
+  }
+  catch (err) {
+    console.log('Unable to parse stored settings: ' + err.message);
+  }
+
   settings.lang = settings.lang || "en_GB";
   settings.text_align = settings.text_align || "center";
   settings.font = settings.font || "classic";
@@ -114,11 +146,11 @@ function prepareConfiguration(serialized_settings) {
   var background = settings.background_colour || (settings.invert ? "white" : "black");
   return {
     "0": settings.invert ? 1 : 0,
-    "1": alignments[settings.text_align],
-    "2": langs[settings.lang],
-    "3": fonts[settings.font],
-    "4": colourValues[foreground],
-    "5": colourValues[background]
+    "1": lookupValue(alignments, settings.text_align, "center"),
+    "2": lookupValue(langs, settings.lang, "en_GB"),
+    "3": lookupValue(fonts, settings.font, "classic"),
+    "4": lookupValue(colourValues, foreground, "white"),
+    "5": lookupValue(colourValues, background, "black")
   };
 }
 
@@ -131,8 +163,10 @@ function transmitConfiguration(settings) {
 }
 
 function logError(event) {
+  var transactionId = event && event.data ? event.data.transactionId : 'unknown';
+  var message = event && event.error ? event.error.message : 'unknown';
   console.log('Unable to deliver message with transactionId='+
-              event.data.transactionId +' ; Error is'+ event.error.message);
+              transactionId +' ; Error is '+ message);
 }
 
 function onReady(callback) {
