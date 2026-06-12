@@ -16,8 +16,11 @@
 #define FONT_CHOICE_KEY 3
 #define FOREGROUND_COLOR_KEY 4
 #define BACKGROUND_COLOR_KEY 5
+#define SETTINGS_SCHEMA_KEY 97
 #define TEST_HOUR_KEY 98
 #define TEST_MINUTE_KEY 99
+
+#define SETTINGS_SCHEMA_VERSION 2
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
@@ -873,6 +876,22 @@ static void window_unload(Window *window)
 }
 
 static void handle_init() {
+	if (!persist_exists(SETTINGS_SCHEMA_KEY)
+			|| persist_read_int(SETTINGS_SCHEMA_KEY) < SETTINGS_SCHEMA_VERSION)
+	{
+		text_align = TEXT_ALIGN_CENTER;
+		foreground_color = 0xFFFFFF;
+		background_color = 0x000000;
+		font_choice = FONT_CHOICE_CLASSIC;
+		lang = EN_GB;
+		persist_write_int(TEXT_ALIGN_KEY, text_align);
+		persist_write_int(FOREGROUND_COLOR_KEY, foreground_color);
+		persist_write_int(BACKGROUND_COLOR_KEY, background_color);
+		persist_write_int(FONT_CHOICE_KEY, font_choice);
+		persist_write_int(LANGUAGE_KEY, lang);
+		persist_write_int(SETTINGS_SCHEMA_KEY, SETTINGS_SCHEMA_VERSION);
+	}
+
 	// Load settings from persistent storage
 	if (persist_exists(TEXT_ALIGN_KEY))
 	{

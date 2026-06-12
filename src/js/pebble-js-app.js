@@ -1,4 +1,5 @@
-var VERSION = "1.4.0";
+var VERSION = "1.4.1";
+var OPTIONS_STORAGE_KEY = "fuzzy-text-two-options-v2";
 var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-fuzzy-text-two.html";
 
 var isReady = false;
@@ -92,12 +93,12 @@ function parseConfigurationResponse(resp) {
 
 // Retrieves stored configuration from localStorage.
 function getOptions() {
-  return localStorage.getItem("options") || ("{}");
+  return localStorage.getItem(OPTIONS_STORAGE_KEY) || ("{}");
 }
 
 // Stores options in localStorage.
 function setOptions(options) {
-  localStorage.setItem("options", options);
+  localStorage.setItem(OPTIONS_STORAGE_KEY, options);
 }
 
 // Takes a string containing serialized JSON as input.  This is the
@@ -105,13 +106,17 @@ function setOptions(options) {
 // a JSON message to send to the watch face.
 function prepareConfiguration(serialized_settings) {
   var settings = JSON.parse(serialized_settings);
+  settings.lang = settings.lang || "en_GB";
+  settings.text_align = settings.text_align || "center";
+  settings.font = settings.font || "classic";
+
   var foreground = settings.foreground_colour || (settings.invert ? "black" : "white");
   var background = settings.background_colour || (settings.invert ? "white" : "black");
   return {
     "0": settings.invert ? 1 : 0,
-    "1": alignments[settings.text_align || "center"],
-    "2": langs[settings.lang || "en_GB"],
-    "3": fonts[settings.font || "classic"],
+    "1": alignments[settings.text_align],
+    "2": langs[settings.lang],
+    "3": fonts[settings.font],
     "4": colourValues[foreground],
     "5": colourValues[background]
   };
