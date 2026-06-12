@@ -110,7 +110,7 @@ function prepareConfiguration(serialized_settings) {
   return {
     "0": settings.invert ? 1 : 0,
     "1": alignments[settings.text_align || "center"],
-    "2": langs[settings.lang || "en_US"],
+    "2": langs[settings.lang || "en_GB"],
     "3": fonts[settings.font || "classic"],
     "4": colourValues[foreground],
     "5": colourValues[background]

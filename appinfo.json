@@ -1,5 +1,12 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "INVERT": 0,
+        "TEXT_ALIGN": 1,
+        "LANGUAGE": 2,
+        "FONT_CHOICE": 3,
+        "FOREGROUND_COLOR": 4,
+        "BACKGROUND_COLOR": 5
+    },
     "capabilities": [
         "configurable"
     ],
@@ -12,25 +19,25 @@
                 "type": "font",
                 "name": "FONT_ROBOTO_CONDENSED_54",
                 "file": "fonts/Roboto-Condensed.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_BOLD_54",
                 "file": "fonts/Roboto-Bold.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_CONDENSED_48",
                 "file": "fonts/Roboto-Condensed.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_BOLD_48",
                 "file": "fonts/Roboto-Bold.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
             }
         ]
     },

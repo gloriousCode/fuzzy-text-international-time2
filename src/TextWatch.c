@@ -16,6 +16,8 @@
 #define FONT_CHOICE_KEY 3
 #define FOREGROUND_COLOR_KEY 4
 #define BACKGROUND_COLOR_KEY 5
+#define TEST_HOUR_KEY 98
+#define TEST_MINUTE_KEY 99
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
@@ -28,15 +30,12 @@
 // Delay from the start of the current layer going out until the next layer slides in
 #define ANIMATION_OUT_IN_DELAY 100
 
-static AppSync sync;
-static uint8_t sync_buffer[160];
-
 static int text_align = TEXT_ALIGN_CENTER;
 static int foreground_color = 0xFFFFFF;
 static int background_color = 0x000000;
 static FontChoice font_choice = FONT_CHOICE_CLASSIC;
 static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
-static Language lang = EN_US;
+static Language lang = EN_GB;
 static GFont custom_font_large_light;
 static GFont custom_font_large_bold;
 static GFont custom_font_medium_light;
@@ -57,6 +56,12 @@ typedef struct {
 static Line lines[NUM_LINES];
 
 static struct tm *t;
+static struct tm test_time;
+static bool use_test_time = false;
+static bool pending_test_hour = false;
+static bool pending_test_minute = false;
+static int requested_test_hour = 0;
+static int requested_test_minute = 0;
 
 static int currentNLines;
 static bool forceDisplayUpdate = false;
@@ -186,7 +191,29 @@ static GColor colour_from_rgb(int rgb)
 #ifdef PBL_COLOR
 	return GColorFromRGB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
 #else
-	return rgb == 0x000000 ? GColorBlack : GColorWhite;
+	int red = (rgb >> 16) & 0xFF;
+	int green = (rgb >> 8) & 0xFF;
+	int blue = rgb & 0xFF;
+	return (red * 30 + green * 59 + blue * 11) >= 12800 ? GColorWhite : GColorBlack;
+#endif
+}
+
+static GColor background_colour(void)
+{
+	return colour_from_rgb(background_color);
+}
+
+static GColor foreground_colour(void)
+{
+#ifdef PBL_COLOR
+	return colour_from_rgb(foreground_color);
+#else
+	GColor foreground = colour_from_rgb(foreground_color);
+	GColor background = background_colour();
+	if (gcolor_equal(foreground, background)) {
+		return gcolor_equal(background, GColorBlack) ? GColorWhite : GColorBlack;
+	}
+	return foreground;
 #endif
 }
 
@@ -253,23 +280,25 @@ static void unload_custom_fonts(void)
 static void configureBoldLayer(TextLayer *textlayer)
 {
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, true));
-	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
+	text_layer_set_text_color(textlayer, foreground_colour());
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
+	text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
 }
 
 // Configure light line of text
 static void configureLightLayer(TextLayer *textlayer)
 {
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, false));
-	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
+	text_layer_set_text_color(textlayer, foreground_colour());
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
+	text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
 }
 
 static void apply_window_colours(void)
 {
-	window_set_background_color(window, colour_from_rgb(background_color));
+	window_set_background_color(window, background_colour());
 }
 
 static void apply_layer_styles(void)
@@ -284,10 +313,117 @@ static void apply_layer_styles(void)
 	forceDisplayUpdate = true;
 }
 
-static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE])
+static bool should_use_high_resolution_layout(void);
+
+static bool render_font_fits(FontChoice choice, char text[NUM_LINES][BUFFER_SIZE],
+		char format[])
 {
-	return text_font_choice_that_fits(screen_bounds.size.w, screen_bounds.size.h,
-		PBL_IF_ROUND_ELSE(true, false), font_choice, text);
+	int line_count = count_text_lines(text);
+	const GTextAlignment alignment = lookup_text_alignment(text_align);
+
+	for (int i = 0; i < line_count; i++) {
+		TextFrame frame = text_frame_for_line(screen_bounds.size.w, screen_bounds.size.h,
+			PBL_IF_ROUND_ELSE(true, false), choice, line_count, i);
+		if (frame.x < 0 || frame.y < 0
+				|| frame.x + frame.w > screen_bounds.size.w
+				|| frame.y + frame.h > screen_bounds.size.h) {
+			return false;
+		}
+
+		GFont font = font_for_choice(choice, format[i] == 'b');
+		GSize content_size = graphics_text_layout_get_content_size(text[i], font,
+			GRect(0, 0, screen_bounds.size.w * 4, frame.h * 2),
+			GTextOverflowModeWordWrap, alignment);
+		if (content_size.w > frame.w || content_size.h > frame.h) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static FontChoice fallback_font_for_attempt(FontChoice preferred, int attempt)
+{
+	static const FontChoice high_resolution_large_fallbacks[] = {
+		FONT_CHOICE_LARGE,
+		FONT_CHOICE_MEDIUM,
+		FONT_CHOICE_CLASSIC,
+		FONT_CHOICE_SHARP,
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SMALL,
+	};
+	static const FontChoice high_resolution_compact_fallbacks[] = {
+		FONT_CHOICE_MEDIUM,
+		FONT_CHOICE_LARGE,
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SHARP,
+		FONT_CHOICE_SMALL,
+	};
+	static const FontChoice tall_fallbacks[] = {
+		FONT_CHOICE_TALL,
+		FONT_CHOICE_CLASSIC,
+		FONT_CHOICE_SHARP,
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SMALL,
+	};
+	static const FontChoice classic_fallbacks[] = {
+		FONT_CHOICE_CLASSIC,
+		FONT_CHOICE_SHARP,
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SMALL,
+	};
+	static const FontChoice sharp_fallbacks[] = {
+		FONT_CHOICE_SHARP,
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SMALL,
+	};
+	static const FontChoice compact_fallbacks[] = {
+		FONT_CHOICE_COMPACT,
+		FONT_CHOICE_SMALL,
+	};
+
+	if (should_use_high_resolution_layout()) {
+		if (preferred == FONT_CHOICE_COMPACT) {
+			return attempt < (int)(sizeof(high_resolution_compact_fallbacks) / sizeof(high_resolution_compact_fallbacks[0]))
+				? high_resolution_compact_fallbacks[attempt]
+				: FONT_CHOICE_SMALL;
+		}
+		return attempt < (int)(sizeof(high_resolution_large_fallbacks) / sizeof(high_resolution_large_fallbacks[0]))
+			? high_resolution_large_fallbacks[attempt]
+			: FONT_CHOICE_SMALL;
+	}
+
+	switch (preferred) {
+		case FONT_CHOICE_TALL:
+			return attempt < (int)(sizeof(tall_fallbacks) / sizeof(tall_fallbacks[0]))
+				? tall_fallbacks[attempt]
+				: FONT_CHOICE_SMALL;
+		case FONT_CHOICE_SHARP:
+			return attempt < (int)(sizeof(sharp_fallbacks) / sizeof(sharp_fallbacks[0]))
+				? sharp_fallbacks[attempt]
+				: FONT_CHOICE_SMALL;
+		case FONT_CHOICE_COMPACT:
+			return attempt < (int)(sizeof(compact_fallbacks) / sizeof(compact_fallbacks[0]))
+				? compact_fallbacks[attempt]
+				: FONT_CHOICE_SMALL;
+		default:
+			return attempt < (int)(sizeof(classic_fallbacks) / sizeof(classic_fallbacks[0]))
+				? classic_fallbacks[attempt]
+				: FONT_CHOICE_SMALL;
+	}
+}
+
+static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE],
+		char format[])
+{
+	for (int attempt = 0; attempt < FONT_CHOICE_COUNT; attempt++) {
+		FontChoice choice = fallback_font_for_attempt(font_choice, attempt);
+		if (render_font_fits(choice, text, format)) {
+			return choice;
+		}
+	}
+
+	return FONT_CHOICE_SMALL;
 }
 
 static bool should_use_high_resolution_layout(void)
@@ -338,14 +474,14 @@ static void choose_time_lines(Language language, int hours, int minutes, int sec
 
 	if (!should_use_high_resolution_layout()) {
 		time_to_lines(language, hours, minutes, seconds, text, format);
-		render_font_choice = choose_render_font(text);
+		render_font_choice = choose_render_font(text, format);
 		return;
 	}
 
 	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
 		time_to_lines_with_limit(language, hours, minutes, seconds, high_resolution_limits[i],
 			candidate, candidate_format);
-		FontChoice candidate_font = choose_render_font(candidate);
+		FontChoice candidate_font = choose_render_font(candidate, candidate_format);
 		int candidate_line_count = count_text_lines(candidate);
 
 		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
@@ -376,14 +512,14 @@ static void choose_date_lines(Language language, int day, int date, int month,
 
 	if (!should_use_high_resolution_layout()) {
 		date_to_lines(language, day, date, month, text, format);
-		render_font_choice = choose_render_font(text);
+		render_font_choice = choose_render_font(text, format);
 		return;
 	}
 
 	for (int i = 0; i < (int)(sizeof(high_resolution_limits) / sizeof(high_resolution_limits[0])); i++) {
 		date_to_lines_with_limit(language, day, date, month, high_resolution_limits[i],
 			candidate, candidate_format);
-		FontChoice candidate_font = choose_render_font(candidate);
+		FontChoice candidate_font = choose_render_font(candidate, candidate_format);
 		int candidate_line_count = count_text_lines(candidate);
 
 		if (!found || font_visual_rank(candidate_font) < font_visual_rank(best_font)
@@ -510,6 +646,9 @@ static void display_initial_time(struct tm *t)
 // Time handler called every minute by the system
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
+	if (use_test_time) {
+		return;
+	}
 	t = tick_time;
   
   if (!showTime) {
@@ -570,12 +709,7 @@ static void click_config_provider(ClickConfig **config, Window *window) {
 
 #endif
 
-static void sync_error_callback(DictionaryResult dict_error, AppMessageResult app_message_error, void *context)
-{
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Sync Error: %d", app_message_error);
-}
-
-static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tuple, const Tuple* old_tuple, void* context) {
+static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 	GTextAlignment alignment;
 	switch (key) {
 		case TEXT_ALIGN_KEY:
@@ -612,11 +746,6 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			lang = (Language) new_tuple->value->uint8;
 			persist_write_int(LANGUAGE_KEY, lang);
 			APP_LOG(APP_LOG_LEVEL_DEBUG, "Set language: %u", lang);
-
-			if (t)
-			{
-				display_time(t);
-			}
 			break;
 		case FONT_CHOICE_KEY:
 			font_choice = (FontChoice) new_tuple->value->uint8;
@@ -626,10 +755,6 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			}
 			persist_write_int(FONT_CHOICE_KEY, font_choice);
 			apply_layer_styles();
-			if (t)
-			{
-				display_time(t);
-			}
 			break;
 		case FOREGROUND_COLOR_KEY:
 			foreground_color = new_tuple->value->int32;
@@ -641,7 +766,47 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 			persist_write_int(BACKGROUND_COLOR_KEY, background_color);
 			apply_window_colours();
 			break;
+		case TEST_HOUR_KEY:
+			requested_test_hour = new_tuple->value->uint8;
+			pending_test_hour = true;
+			break;
+		case TEST_MINUTE_KEY:
+			requested_test_minute = new_tuple->value->uint8;
+			pending_test_minute = true;
+			break;
 	}
+}
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context)
+{
+	Tuple *tuple = dict_read_first(iterator);
+
+	while (tuple != NULL) {
+		apply_settings_tuple(tuple->key, tuple);
+		tuple = dict_read_next(iterator);
+	}
+
+	if (pending_test_hour && pending_test_minute) {
+		time_t raw_time;
+		time(&raw_time);
+		test_time = *localtime(&raw_time);
+		test_time.tm_hour = requested_test_hour;
+		test_time.tm_min = requested_test_minute;
+		test_time.tm_sec = 0;
+		t = &test_time;
+		use_test_time = true;
+	}
+	pending_test_hour = false;
+	pending_test_minute = false;
+
+	if (t) {
+		display_time(t);
+	}
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context)
+{
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message dropped: %d", reason);
 }
 
 static void init_line(Line* line)
@@ -696,23 +861,10 @@ static void window_load(Window *window)
 	t = localtime(&raw_time);
 	display_initial_time(t);
 
-	Tuplet initial_values[] = {
-		TupletInteger(TEXT_ALIGN_KEY, (uint8_t) text_align),
-		TupletInteger(INVERT_KEY,     (uint8_t) 0),
-		TupletInteger(LANGUAGE_KEY,   (uint8_t) lang),
-		TupletInteger(FONT_CHOICE_KEY, (uint8_t) font_choice),
-		TupletInteger(FOREGROUND_COLOR_KEY, foreground_color),
-		TupletInteger(BACKGROUND_COLOR_KEY, background_color)
-	};
-
-	app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values, ARRAY_LENGTH(initial_values),
-			sync_tuple_changed_callback, sync_error_callback, NULL);
 }
 
 static void window_unload(Window *window)
 {
-	app_sync_deinit(&sync);
-
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		destroy_line(&lines[i]);
@@ -770,6 +922,8 @@ static void handle_init() {
 	// Initialize message queue
 	const int inbound_size = 64;
 	const int outbound_size = 64;
+	app_message_register_inbox_received(inbox_received_callback);
+	app_message_register_inbox_dropped(inbox_dropped_callback);
 	app_message_open(inbound_size, outbound_size);
 
 	const bool animated = true;

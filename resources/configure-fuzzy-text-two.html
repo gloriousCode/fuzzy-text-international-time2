@@ -214,14 +214,14 @@
 
 				<div class="radio">
 					<label>
-						<input type="radio" name="lang" value="en_GB" />
+						<input type="radio" name="lang" value="en_GB" checked />
 						English (Great Britain)
 					</label>
 				</div>
 
 				<div class="radio">
 					<label>
-						<input type="radio" name="lang" value="en_US" checked />
+						<input type="radio" name="lang" value="en_US" />
 						English (United States)
 					</label>
 				</div>
@@ -308,7 +308,7 @@
 		function saveOptions() {
 			var options = {
 				text_align:	checkedValue('align') || 'center',
-				lang:		checkedValue('lang') || 'en_US',
+				lang:		checkedValue('lang') || 'en_GB',
 				font:		checkedValue('font') || 'classic',
 				foreground_colour: document.querySelector('[name="foreground_colour"]').value || 'white',
 				background_colour: document.querySelector('[name="background_colour"]').value || 'black',

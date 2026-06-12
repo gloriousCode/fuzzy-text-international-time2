@@ -94,6 +94,7 @@ TextFrame text_frame_for_line(int screen_width, int screen_height, bool round,
 
   int x = 0;
   int width = screen_width;
+  int padding = screen_width / 30;
 
   if (round) {
     int radius = screen_width < screen_height ? screen_width / 2 : screen_height / 2;
@@ -104,10 +105,13 @@ TextFrame text_frame_for_line(int screen_width, int screen_height, bool round,
     int chord_value = (radius * radius) - (worst_delta * worst_delta);
     int chord_half_width = chord_value > 0 ? int_sqrt(chord_value) : 0;
     int inset = (screen_width / 2) - chord_half_width;
-    int padding = screen_width / 30;
 
     x = inset > padding ? inset : padding;
     width = screen_width - (2 * x);
+  }
+  else {
+    x = padding;
+    width = screen_width - (2 * padding);
   }
 
   return (TextFrame) {

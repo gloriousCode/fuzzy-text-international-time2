@@ -43,6 +43,25 @@ Features:
  - Nice staggered animation
  - Multiple languages inherited from the original international face
 
+Screenshots
+-----------
+
+These screenshots show the modernised rendering across the supported
+PebbleOS platforms, including colour presets, text alignment, and the
+higher-resolution Emery and Gabbro layouts.
+
+| Platform | Default, 7:25 | Black/red, 12:00 | Ocean left, 3:15 | White/blue right, 11:45 |
+| --- | --- | --- | --- | --- |
+| Aplite | ![Aplite default 7:25](screenshots/aplite_0725_default.png) | ![Aplite black background red text 12:00](screenshots/aplite_1200_black_red.png) | ![Aplite ocean preset left aligned 3:15](screenshots/aplite_0315_left_ocean.png) | ![Aplite white background blue text right aligned 11:45](screenshots/aplite_1145_right_white_blue.png) |
+| Basalt | ![Basalt default 7:25](screenshots/basalt_0725_default.png) | ![Basalt black background red text 12:00](screenshots/basalt_1200_black_red.png) | ![Basalt ocean preset left aligned 3:15](screenshots/basalt_0315_left_ocean.png) | ![Basalt white background blue text right aligned 11:45](screenshots/basalt_1145_right_white_blue.png) |
+| Chalk | ![Chalk default 7:25](screenshots/chalk_0725_default.png) | ![Chalk black background red text 12:00](screenshots/chalk_1200_black_red.png) | ![Chalk ocean preset left aligned 3:15](screenshots/chalk_0315_left_ocean.png) | ![Chalk white background blue text right aligned 11:45](screenshots/chalk_1145_right_white_blue.png) |
+| Diorite | ![Diorite default 7:25](screenshots/diorite_0725_default.png) | ![Diorite black background red text 12:00](screenshots/diorite_1200_black_red.png) | ![Diorite ocean preset left aligned 3:15](screenshots/diorite_0315_left_ocean.png) | ![Diorite white background blue text right aligned 11:45](screenshots/diorite_1145_right_white_blue.png) |
+| Emery | ![Emery default 7:25](screenshots/emery_0725_default.png) | ![Emery black background red text 12:00](screenshots/emery_1200_black_red.png) | ![Emery ocean preset left aligned 3:15](screenshots/emery_0315_left_ocean.png) | ![Emery white background blue text right aligned 11:45](screenshots/emery_1145_right_white_blue.png) |
+| Gabbro | ![Gabbro default 7:25](screenshots/gabbro_0725_default.png) | ![Gabbro black background red text 12:00](screenshots/gabbro_1200_black_red.png) | ![Gabbro ocean preset left aligned 3:15](screenshots/gabbro_0315_left_ocean.png) | ![Gabbro white background blue text right aligned 11:45](screenshots/gabbro_1145_right_white_blue.png) |
+
+On monochrome platforms such as Aplite and Diorite, colour presets are
+mapped to high-contrast black and white so text remains readable.
+
 The following options can be configured, using the Pebble app on your
 phone:
 
