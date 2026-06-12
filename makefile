@@ -31,12 +31,12 @@ clean:
 	rm -rf build
 
 config-emery:
-	pebble emu-app-config --emulator emery --file resources/configure-fuzzy-text.html
+	pebble emu-app-config --emulator emery --file resources/configure-fuzzy-text-two.html
 
 config-gabbro:
-	pebble emu-app-config --emulator gabbro --file resources/configure-fuzzy-text.html
+	pebble emu-app-config --emulator gabbro --file resources/configure-fuzzy-text-two.html
 
 l: c
-	deploypebble.sh load ~/Pebble/TextWatch/build/TextWatch.pbw
+	deploypebble.sh load build/fuzzy-text-two.pbw
 d: c
-	deploypebble.sh reinstall  ~/Pebble/TextWatch/build/TextWatch.pbw 
+	deploypebble.sh reinstall build/fuzzy-text-two.pbw

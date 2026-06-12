@@ -8,8 +8,8 @@
 	<!-- Basic Page Needs
   ================================================== -->
 	<meta charset="utf-8">
-	<title>Configure Fuzzy Text</title>
-	<meta name="description" content="configuration page for Fuzzy Text International, a Pebble watchface">
+	<title>Configure Fuzzy Text Two</title>
+	<meta name="description" content="configuration page for Fuzzy Text Two, a Pebble watchface">
 	<meta name="author" content="Jesse Hallett <jesse@sitr.us>">
 
 	<!-- Mobile Specific Metas
@@ -50,18 +50,6 @@
 			padding: 6px;
 			min-width: 160px;
 		}
-		.bg-danger,
-		.bg-info {
-			margin: 12px 0;
-			padding: 12px;
-			border-radius: 4px;
-		}
-		.bg-danger {
-			background: #f5d4d0;
-		}
-		.bg-info {
-			background: #d9edf7;
-		}
 		.btn,
 		button {
 			display: inline-block;
@@ -89,20 +77,8 @@
 
 	<div class="container">
 		<header>
-			<h1>Configure Fuzzy Text Int'l</h1>
+			<h1>Configure Fuzzy Text Two</h1>
 		</header>
-		
-		<div id="update-available" class="hidden bg-danger" style="padding:0.75em">
-			<p>There is a new version of Fuzzy Text International
-			available - some settings will not work until you update to
-			the new version. <a href="CHANGES.html">See
-			details</a></p>
-		</div>
-
-		<div id="up-to-date" class="hidden bg-info" style="padding:0.75em">
-			<p>Your version of Fuzzy Text International is up-to-date.
-			<a href="CHANGES.html">See changes</a></p>
-		</div>
 
 		<form id="config" role="form" class="input-lg">
 
@@ -291,8 +267,6 @@
 ================================================== -->
 
 	<script>
-		var LATEST = "1.4.0";
-
 		var presets = {
 			classic: {
 				font: 'classic',
@@ -329,12 +303,6 @@
 			each('[name="' + name + '"]', function(input) {
 				input.checked = input.value === value;
 			});
-		}
-
-		function setHidden(id, hidden) {
-			document.getElementById(id).className = hidden
-				? document.getElementById(id).className + ' hidden'
-				: document.getElementById(id).className.replace(/\bhidden\b/g, '');
 		}
 
 		function saveOptions() {
@@ -383,13 +351,6 @@
 			return val;
 		}
 
-		function parseVersion(verStr) {
-			var parts = verStr.split('.');
-			return parts.reduce(function(sum, part) {
-				return (sum * 1000) + parseInt(part, 10);
-			}, 0);
-		}
-
 		document.getElementById('b-submit').addEventListener('click', function() {
 			var returnTo = getParam('return_to');
 			var location = returnTo
@@ -420,14 +381,6 @@
 				document.querySelector('[name="background_colour"]').value = preset.background_colour;
 			});
 		});
-
-		var version = getParam('v');
-		if (!version || (parseVersion(version) < parseVersion(LATEST))) {
-			setHidden('update-available', false);
-		}
-		else {
-			setHidden('up-to-date', false);
-		}
 
 		applyOptions();
    </script>

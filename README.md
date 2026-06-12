@@ -1,5 +1,5 @@
-Fuzzy Text International
-========================
+Fuzzy Text Two
+==============
 
 This is a watchface for the [Pebble][].  It is originally based on the
 [PebbleTextWatch][] by Mihai Dumitrache, which reproduced the look of
@@ -30,7 +30,8 @@ Features:
 The following options can be configured, using the Pebble app on your
 phone:
 
-- Invert colors (white-on-black or black-on-white)
+- Font preset
+- Foreground and background colours
 - Text alignment (centered, left, or right)
 - Language
 
@@ -67,15 +68,15 @@ Contributing
 If you would like to request a translation, provide a translation, or
 point out errors in a translation, please [open an issue][issue].
 
-[issue]: https://github.com/hallettj/Fuzzy-Text-International/issues/new
+[issue]: https://github.com/gloriousCode/fuzzy-text-two/issues/new
 
 For an example of what is needed for translations, take a look at
 [`strings-en.c`][en].  In case you want to implement a translation
 yourself, look at [818e076][es] to see all of the code changes that are
 necessary to do so.
 
-[en]: https://github.com/hallettj/Fuzzy-Text-International/blob/master/src/strings-en.c
-[es]: https://github.com/hallettj/Fuzzy-Text-International/commit/818e07686761adc00245986f6d389076534a5c1a
+[en]: https://github.com/gloriousCode/fuzzy-text-two/blob/master/src/strings-en_GB.c
+[es]: https://github.com/gloriousCode/fuzzy-text-two/commit/818e07686761adc00245986f6d389076534a5c1a
 
 Please feel free to open issues for matters other than translations!
 Pull requests are welcome as well.

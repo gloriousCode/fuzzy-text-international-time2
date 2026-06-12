@@ -4,13 +4,13 @@
         "configurable"
     ],
     "companyName": "Jesse Hallett",
-    "longName": "Fuzzy Text International",
+    "longName": "Fuzzy Text Two",
     "projectType": "native",
     "resources": {
         "media": []
     },
     "sdkVersion": "3",
-    "shortName": "Fuzzy Text Int'l",
+    "shortName": "Fuzzy Text Two",
     "targetPlatforms": [
         "aplite",
         "basalt",
