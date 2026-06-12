@@ -1,4 +1,5 @@
 var VERSION = "1.4.0";
+var CONFIG_URL = "https://cdn.jsdelivr.net/gh/gloriousCode/fuzzy-text-international-time2@master/resources/configure-fuzzy-text.html";
 
 var isReady = false;
 var callbacks = [];
@@ -53,8 +54,7 @@ function readyCallback(event) {
 function showConfiguration(event) {
   onReady(function() {
     var opts = getOptions();
-    var url  = "http://static.sitr.us.s3-website-us-west-2.amazonaws.com/configure-fuzzy-text.html";
-    Pebble.openURL(url + "#v=" + encodeURIComponent(VERSION) + "&options=" + encodeURIComponent(opts));
+    Pebble.openURL(CONFIG_URL + "#v=" + encodeURIComponent(VERSION) + "&options=" + encodeURIComponent(opts));
   });
 }
 
@@ -73,9 +73,10 @@ function webviewclosed(event) {
   }
 
   onReady(function() {
-    setOptions(resp);
+    var serializedOptions = JSON.stringify(options);
+    setOptions(serializedOptions);
 
-    var message = prepareConfiguration(resp);
+    var message = prepareConfiguration(serializedOptions);
     transmitConfiguration(message);
   });
 }
