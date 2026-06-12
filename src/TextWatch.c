@@ -46,6 +46,7 @@ static GFont custom_font_medium_bold;
 
 static Window *window;
 static GRect screen_bounds;
+static bool window_loaded = false;
 
 typedef struct {
 	TextLayer *currentLayer;
@@ -343,11 +344,19 @@ static void configureLightLayer(TextLayer *textlayer)
 
 static void apply_window_colours(void)
 {
+	if (!window) {
+		return;
+	}
 	window_set_background_color(window, background_colour());
 }
 
 static void apply_layer_styles(void)
 {
+	if (!window_loaded) {
+		forceDisplayUpdate = true;
+		return;
+	}
+
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		configureLightLayer(lines[i].currentLayer);
@@ -844,7 +853,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	pending_test_hour = false;
 	pending_test_minute = false;
 
-	if (t) {
+	if (t && window_loaded) {
 		display_time(t);
 	}
 }
@@ -901,6 +910,7 @@ static void window_load(Window *window)
 		layer_add_child(window_layer, (Layer *)lines[i].currentLayer);
 		layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
 	}
+	window_loaded = true;
 
 	// Configure time on init
 	time_t raw_time;
@@ -913,6 +923,8 @@ static void window_load(Window *window)
 
 static void window_unload(Window *window)
 {
+	window_loaded = false;
+
 	for (int i = 0; i < NUM_LINES; i++)
 	{
 		destroy_line(&lines[i]);
@@ -983,15 +995,15 @@ static void handle_init() {
 		.unload = window_unload
 	});
 
-	// Initialize message queue
+	const bool animated = true;
+	window_stack_push(window, animated);
+
+	// Initialize message queue after window load so startup settings cannot race layer creation.
 	const int inbound_size = 128;
 	const int outbound_size = 64;
 	app_message_register_inbox_received(inbox_received_callback);
 	app_message_register_inbox_dropped(inbox_dropped_callback);
 	app_message_open(inbound_size, outbound_size);
-
-	const bool animated = true;
-	window_stack_push(window, animated);
   
   // Sample as little as often to save battery and no need for precision
   accel_service_set_sampling_rate(ACCEL_SAMPLING_10HZ);
