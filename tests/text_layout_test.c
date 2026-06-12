@@ -174,6 +174,36 @@ static void assert_time_lines_mark_hour_bold(void)
   }
 }
 
+static void assert_high_resolution_time_uses_large_fonts(void)
+{
+  char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE];
+  char format[FUZZY_TEXT_NUM_LINES];
+  const ScreenCase *emery = &screen_cases[4];
+  const ScreenCase *gabbro = &screen_cases[6];
+
+  for (int hour = 0; hour < 24; hour++) {
+    current_hour = hour;
+    for (int minute = 0; minute < 60; minute += 30) {
+      current_label = "high-resolution-font";
+      current_minute = minute;
+      time_to_lines(EN_US, hour, minute, 0, lines, format);
+
+      FontChoice emery_font = text_font_choice_that_fits(emery->width, emery->height,
+          emery->round, FONT_CHOICE_CLASSIC, lines);
+      FontChoice gabbro_font = text_font_choice_that_fits(gabbro->width, gabbro->height,
+          gabbro->round, FONT_CHOICE_CLASSIC, lines);
+
+      if (emery_font != FONT_CHOICE_LARGE || gabbro_font != FONT_CHOICE_LARGE) {
+        fprintf(stderr, "unexpected high-resolution fallback hour=%d minute=%d emery=%d gabbro=%d\n",
+            hour, minute, emery_font, gabbro_font);
+      }
+
+      assert(emery_font == FONT_CHOICE_LARGE);
+      assert(gabbro_font == FONT_CHOICE_LARGE);
+    }
+  }
+}
+
 int main(void)
 {
   signal(SIGSEGV, print_crash_context);
@@ -181,6 +211,7 @@ int main(void)
   assert_time_lines_fit();
   assert_date_lines_fit();
   assert_time_lines_mark_hour_bold();
+  assert_high_resolution_time_uses_large_fonts();
 
   puts("text layout compatibility checks passed");
   return 0;

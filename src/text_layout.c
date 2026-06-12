@@ -33,40 +33,54 @@ static int abs_int(int value)
 TextMetrics text_metrics_for_font_choice(FontChoice font_choice)
 {
   switch (font_choice) {
+    case FONT_CHOICE_LARGE:
+      return (TextMetrics) {
+        .row_height = 58,
+        .layer_height = 66,
+        .top_margin = 4,
+        .max_glyph_width = 21,
+      };
+    case FONT_CHOICE_MEDIUM:
+      return (TextMetrics) {
+        .row_height = 52,
+        .layer_height = 60,
+        .top_margin = 4,
+        .max_glyph_width = 19,
+      };
     case FONT_CHOICE_SHARP:
       return (TextMetrics) {
         .row_height = 32,
         .layer_height = 38,
         .top_margin = 2,
-        .max_glyph_width = 18,
+        .max_glyph_width = 14,
       };
     case FONT_CHOICE_COMPACT:
       return (TextMetrics) {
         .row_height = 28,
         .layer_height = 32,
         .top_margin = 0,
-        .max_glyph_width = 16,
+        .max_glyph_width = 12,
       };
     case FONT_CHOICE_TALL:
       return (TextMetrics) {
         .row_height = 42,
         .layer_height = 50,
         .top_margin = 0,
-        .max_glyph_width = 22,
+        .max_glyph_width = 17,
       };
     case FONT_CHOICE_SMALL:
       return (TextMetrics) {
         .row_height = 22,
         .layer_height = 26,
         .top_margin = 0,
-        .max_glyph_width = 10,
+        .max_glyph_width = 8,
       };
     default:
       return (TextMetrics) {
         .row_height = 37,
         .layer_height = 50,
         .top_margin = 10,
-        .max_glyph_width = 22,
+        .max_glyph_width = 17,
       };
   }
 }
@@ -107,8 +121,29 @@ TextFrame text_frame_for_line(int screen_width, int screen_height, bool round,
 int text_estimated_width(FontChoice font_choice, const char *text)
 {
   TextMetrics metrics = text_metrics_for_font_choice(font_choice);
+  int width = 0;
 
-  return (int)strlen(text) * metrics.max_glyph_width;
+  for (int i = 0; text[i] != '\0'; i++) {
+    unsigned char c = (unsigned char)text[i];
+    if ((c & 0xC0) == 0x80) {
+      continue;
+    }
+    if (c == ' ') {
+      width += metrics.max_glyph_width / 2;
+    }
+    else if (c == 'i' || c == 'l' || c == 'j' || c == 't' || c == 'f'
+        || c == 'I') {
+      width += (metrics.max_glyph_width * 2) / 3;
+    }
+    else if (c == 'm' || c == 'w' || c == 'M' || c == 'W') {
+      width += (metrics.max_glyph_width * 4) / 3;
+    }
+    else {
+      width += metrics.max_glyph_width;
+    }
+  }
+
+  return width;
 }
 
 static int count_lines(char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE])
@@ -146,8 +181,23 @@ bool text_font_choice_fits(int screen_width, int screen_height, bool round,
   return true;
 }
 
-static FontChoice fallback_font_choice(FontChoice preferred, int attempt)
+static FontChoice fallback_font_choice(FontChoice preferred, int attempt, bool high_resolution)
 {
+  static const FontChoice high_resolution_large_fallbacks[] = {
+    FONT_CHOICE_LARGE,
+    FONT_CHOICE_MEDIUM,
+    FONT_CHOICE_CLASSIC,
+    FONT_CHOICE_SHARP,
+    FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SMALL,
+  };
+  static const FontChoice high_resolution_compact_fallbacks[] = {
+    FONT_CHOICE_MEDIUM,
+    FONT_CHOICE_LARGE,
+    FONT_CHOICE_COMPACT,
+    FONT_CHOICE_SHARP,
+    FONT_CHOICE_SMALL,
+  };
   static const FontChoice tall_fallbacks[] = {
     FONT_CHOICE_TALL,
     FONT_CHOICE_CLASSIC,
@@ -170,6 +220,17 @@ static FontChoice fallback_font_choice(FontChoice preferred, int attempt)
     FONT_CHOICE_COMPACT,
     FONT_CHOICE_SMALL,
   };
+
+  if (high_resolution) {
+    if (preferred == FONT_CHOICE_COMPACT) {
+      return attempt < (int)(sizeof(high_resolution_compact_fallbacks) / sizeof(high_resolution_compact_fallbacks[0]))
+          ? high_resolution_compact_fallbacks[attempt]
+          : FONT_CHOICE_SMALL;
+    }
+    return attempt < (int)(sizeof(high_resolution_large_fallbacks) / sizeof(high_resolution_large_fallbacks[0]))
+        ? high_resolution_large_fallbacks[attempt]
+        : FONT_CHOICE_SMALL;
+  }
 
   switch (preferred) {
     case FONT_CHOICE_TALL:
@@ -197,8 +258,10 @@ FontChoice text_font_choice_that_fits(int screen_width, int screen_height, bool 
     FontChoice preferred,
     char lines[FUZZY_TEXT_NUM_LINES][FUZZY_TEXT_BUFFER_SIZE])
 {
+  bool high_resolution = screen_width >= 200 && screen_height >= 200;
+
   for (int attempt = 0; attempt < FONT_CHOICE_COUNT; attempt++) {
-    FontChoice font_choice = fallback_font_choice(preferred, attempt);
+    FontChoice font_choice = fallback_font_choice(preferred, attempt, high_resolution);
     if (text_font_choice_fits(screen_width, screen_height, round, font_choice, lines)) {
       return font_choice;
     }

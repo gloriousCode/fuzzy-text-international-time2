@@ -7,7 +7,32 @@
     "longName": "Fuzzy Text Two",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "type": "font",
+                "name": "FONT_ROBOTO_CONDENSED_54",
+                "file": "fonts/Roboto-Condensed.ttf",
+                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+            },
+            {
+                "type": "font",
+                "name": "FONT_ROBOTO_BOLD_54",
+                "file": "fonts/Roboto-Bold.ttf",
+                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+            },
+            {
+                "type": "font",
+                "name": "FONT_ROBOTO_CONDENSED_48",
+                "file": "fonts/Roboto-Condensed.ttf",
+                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+            },
+            {
+                "type": "font",
+                "name": "FONT_ROBOTO_BOLD_48",
+                "file": "fonts/Roboto-Bold.ttf",
+                "characterRegex": "[ A-Za-zÀ-ÿ-]"
+            }
+        ]
     },
     "sdkVersion": "3",
     "shortName": "Fuzzy Text Two",

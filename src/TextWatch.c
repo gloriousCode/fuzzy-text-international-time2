@@ -37,6 +37,10 @@ static int background_color = 0x000000;
 static FontChoice font_choice = FONT_CHOICE_CLASSIC;
 static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
 static Language lang = EN_US;
+static GFont custom_font_large_light;
+static GFont custom_font_large_bold;
+static GFont custom_font_medium_light;
+static GFont custom_font_medium_bold;
 
 static Window *window;
 static GRect screen_bounds;
@@ -172,44 +176,69 @@ static GColor colour_from_rgb(int rgb)
 #endif
 }
 
-static const char *bold_font_key_for_choice(FontChoice choice)
+static GFont font_for_choice(FontChoice choice, bool bold)
 {
 	switch (choice)
 	{
+		case FONT_CHOICE_LARGE:
+			if (bold) {
+				return custom_font_large_bold ? custom_font_large_bold : fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
+			}
+			return custom_font_large_light ? custom_font_large_light : fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT);
+		case FONT_CHOICE_MEDIUM:
+			if (bold) {
+				return custom_font_medium_bold ? custom_font_medium_bold : fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
+			}
+			return custom_font_medium_light ? custom_font_medium_light : fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT);
 		case FONT_CHOICE_SHARP:
-			return FONT_KEY_GOTHIC_28_BOLD;
+			return fonts_get_system_font(bold ? FONT_KEY_GOTHIC_28_BOLD : FONT_KEY_GOTHIC_28);
 		case FONT_CHOICE_COMPACT:
-			return FONT_KEY_GOTHIC_24_BOLD;
+			return fonts_get_system_font(bold ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_24);
 		case FONT_CHOICE_TALL:
-			return FONT_KEY_BITHAM_42_BOLD;
+			return fonts_get_system_font(bold ? FONT_KEY_BITHAM_42_BOLD : FONT_KEY_BITHAM_42_LIGHT);
 		case FONT_CHOICE_SMALL:
-			return FONT_KEY_GOTHIC_18_BOLD;
+			return fonts_get_system_font(bold ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_18);
 		default:
-			return FONT_KEY_BITHAM_42_BOLD;
+			return fonts_get_system_font(bold ? FONT_KEY_BITHAM_42_BOLD : FONT_KEY_BITHAM_42_LIGHT);
 	}
 }
 
-static const char *light_font_key_for_choice(FontChoice choice)
+static void load_custom_fonts(void)
 {
-	switch (choice)
-	{
-		case FONT_CHOICE_SHARP:
-			return FONT_KEY_GOTHIC_28;
-		case FONT_CHOICE_COMPACT:
-			return FONT_KEY_GOTHIC_24;
-		case FONT_CHOICE_TALL:
-			return FONT_KEY_BITHAM_42_LIGHT;
-		case FONT_CHOICE_SMALL:
-			return FONT_KEY_GOTHIC_18;
-		default:
-			return FONT_KEY_BITHAM_42_LIGHT;
+	if (custom_font_large_light == NULL) {
+		custom_font_large_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_54));
 	}
+	if (custom_font_large_bold == NULL) {
+		custom_font_large_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_54));
+	}
+	if (custom_font_medium_light == NULL) {
+		custom_font_medium_light = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_48));
+	}
+	if (custom_font_medium_bold == NULL) {
+		custom_font_medium_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_48));
+	}
+}
+
+static void unload_custom_font(GFont *font)
+{
+	if (*font != NULL) {
+		fonts_unload_custom_font(*font);
+		*font = NULL;
+	}
+}
+
+static void unload_custom_fonts(void)
+{
+	unload_custom_font(&custom_font_large_light);
+	unload_custom_font(&custom_font_large_bold);
+	unload_custom_font(&custom_font_medium_light);
+	unload_custom_font(&custom_font_medium_bold);
 }
 
 // Configure bold line of text
 static void configureBoldLayer(TextLayer *textlayer)
 {
-	text_layer_set_font(textlayer, fonts_get_system_font(bold_font_key_for_choice(render_font_choice)));
+	text_layer_set_font(textlayer, font_for_choice(render_font_choice, true));
 	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
@@ -218,7 +247,7 @@ static void configureBoldLayer(TextLayer *textlayer)
 // Configure light line of text
 static void configureLightLayer(TextLayer *textlayer)
 {
-	text_layer_set_font(textlayer, fonts_get_system_font(light_font_key_for_choice(render_font_choice)));
+	text_layer_set_font(textlayer, font_for_choice(render_font_choice, false));
 	text_layer_set_text_color(textlayer, colour_from_rgb(foreground_color));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
@@ -517,6 +546,9 @@ static void window_load(Window *window)
 {
 	Layer *window_layer = window_get_root_layer(window);
 	screen_bounds = layer_get_bounds(window_layer);
+	if (screen_bounds.size.w >= 200 && screen_bounds.size.h >= 200) {
+		load_custom_fonts();
+	}
 	apply_window_colours();
 
 	// Init and load lines
@@ -555,6 +587,7 @@ static void window_unload(Window *window)
 	{
 		destroy_line(&lines[i]);
 	}
+	unload_custom_fonts();
 }
 
 static void handle_init() {
