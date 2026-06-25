@@ -4,7 +4,7 @@
 Changes
 ========
 
-The latest version is 1.2.1.  To update, remove the watchface from your
+The latest version is 1.4.8.  To update, remove the watchface from your
 watch and then load it again from your locker.
 
 The iOS version has to go through the Apple Store approval process - so
@@ -14,6 +14,18 @@ watchface.
 
 Android users do not need to wait for the Pebble app to update before
 updating the watchface.
+
+version 1.4.8
+-------------
+
+- Adds optional separate colours for minute row one, minute row two, hour row,
+  and each corner date section.
+
+version 1.4.7
+-------------
+
+- Adds an optional small corner date with top or bottom placement and
+  compact numeric or abbreviated formats.
 
 version 1.2.1
 -------------

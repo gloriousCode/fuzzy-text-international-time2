@@ -1,4 +1,4 @@
-var VERSION = "1.4.4";
+var VERSION = "1.4.8";
 var OPTIONS_STORAGE_KEY = "fuzzy-text-two-options-v2";
 var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-fuzzy-text-two.html";
 
@@ -29,7 +29,36 @@ var fonts = {
   tall:    3
 };
 
+var datePositions = {
+  off:    0,
+  top:    1,
+  bottom: 2
+};
+
+var dateFormats = {
+  dd_mm_yy:    0,
+  mm_dd_yyyy: 1,
+  mon_d_aug:  2,
+  dd_slash_mm: 3,
+  mm_slash_dd: 4
+};
+
 var colourValues = {
+  black:     0x000000,
+  white:     0xFFFFFF,
+  red:       0xFF0000,
+  orange:    0xFF5500,
+  yellow:    0xFFFF00,
+  green:     0x00AA00,
+  mint:      0x55FFAA,
+  cyan:      0x00AAFF,
+  blue:      0x0055FF,
+  purple:    0xAA00FF,
+  magenta:   0xFF00AA
+};
+
+var optionalColourValues = {
+  match:     -1,
   black:     0x000000,
   white:     0xFFFFFF,
   red:       0xFF0000,
@@ -73,7 +102,15 @@ function webviewclosed(event) {
       typeof options.lang === 'undefined' &&
       typeof options.font === 'undefined' &&
       typeof options.foreground_colour === 'undefined' &&
-      typeof options.background_colour === 'undefined') {
+      typeof options.background_colour === 'undefined' &&
+      typeof options.date_position === 'undefined' &&
+      typeof options.date_format === 'undefined' &&
+      typeof options.row_one_colour === 'undefined' &&
+      typeof options.row_two_colour === 'undefined' &&
+      typeof options.row_three_colour === 'undefined' &&
+      typeof options.date_part_one_colour === 'undefined' &&
+      typeof options.date_part_two_colour === 'undefined' &&
+      typeof options.date_part_three_colour === 'undefined') {
     return;
   }
 
@@ -141,16 +178,32 @@ function prepareConfiguration(serialized_settings) {
   settings.lang = settings.lang || "en_GB";
   settings.text_align = settings.text_align || "center";
   settings.font = settings.font || "classic";
+  settings.date_position = settings.date_position || "off";
+  settings.date_format = settings.date_format || "dd_mm_yy";
 
   var foreground = settings.foreground_colour || (settings.invert ? "black" : "white");
   var background = settings.background_colour || (settings.invert ? "white" : "black");
+  var rowOne = settings.row_one_colour || settings.minute_colour || "match";
+  var rowTwo = settings.row_two_colour || settings.minute_colour || "match";
+  var rowThree = settings.row_three_colour || settings.hour_colour || "match";
+  var datePartOne = settings.date_part_one_colour || settings.date_colour || "match";
+  var datePartTwo = settings.date_part_two_colour || settings.date_colour || "match";
+  var datePartThree = settings.date_part_three_colour || settings.date_colour || "match";
   return {
     "0": settings.invert ? 1 : 0,
     "1": lookupValue(alignments, settings.text_align, "center"),
     "2": lookupValue(langs, settings.lang, "en_GB"),
     "3": lookupValue(fonts, settings.font, "classic"),
     "4": lookupValue(colourValues, foreground, "white"),
-    "5": lookupValue(colourValues, background, "black")
+    "5": lookupValue(colourValues, background, "black"),
+    "6": lookupValue(datePositions, settings.date_position, "off"),
+    "7": lookupValue(dateFormats, settings.date_format, "dd_mm_yy"),
+    "8": lookupValue(optionalColourValues, rowOne, "match"),
+    "9": lookupValue(optionalColourValues, rowTwo, "match"),
+    "10": lookupValue(optionalColourValues, rowThree, "match"),
+    "11": lookupValue(optionalColourValues, datePartOne, "match"),
+    "12": lookupValue(optionalColourValues, datePartTwo, "match"),
+    "13": lookupValue(optionalColourValues, datePartThree, "match")
   };
 }
 

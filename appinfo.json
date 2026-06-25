@@ -5,7 +5,15 @@
         "LANGUAGE": 2,
         "FONT_CHOICE": 3,
         "FOREGROUND_COLOR": 4,
-        "BACKGROUND_COLOR": 5
+        "BACKGROUND_COLOR": 5,
+        "DATE_POSITION": 6,
+        "DATE_FORMAT": 7,
+        "ROW_ONE_COLOR": 8,
+        "ROW_TWO_COLOR": 9,
+        "ROW_THREE_COLOR": 10,
+        "DATE_PART_ONE_COLOR": 11,
+        "DATE_PART_TWO_COLOR": 12,
+        "DATE_PART_THREE_COLOR": 13
     },
     "capabilities": [
         "configurable"
@@ -53,8 +61,8 @@
         "gabbro"
     ],
     "uuid": "bf4b4493-24d6-49e1-9388-4100aa55d9ba",
-    "versionCode": 11,
-    "versionLabel": "1.4.6",
+    "versionCode": 13,
+    "versionLabel": "1.4.8",
     "watchapp": {
         "watchface": true
     }

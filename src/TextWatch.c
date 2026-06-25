@@ -16,15 +16,37 @@
 #define FONT_CHOICE_KEY 3
 #define FOREGROUND_COLOR_KEY 4
 #define BACKGROUND_COLOR_KEY 5
+#define DATE_POSITION_KEY 6
+#define DATE_FORMAT_KEY 7
+#define ROW_ONE_COLOR_KEY 8
+#define ROW_TWO_COLOR_KEY 9
+#define ROW_THREE_COLOR_KEY 10
+#define DATE_PART_ONE_COLOR_KEY 11
+#define DATE_PART_TWO_COLOR_KEY 12
+#define DATE_PART_THREE_COLOR_KEY 13
 #define SETTINGS_SCHEMA_KEY 97
 #define TEST_HOUR_KEY 98
 #define TEST_MINUTE_KEY 99
 
-#define SETTINGS_SCHEMA_VERSION 2
+#define SETTINGS_SCHEMA_VERSION 4
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
 #define TEXT_ALIGN_RIGHT 2
+
+#define DATE_POSITION_OFF 0
+#define DATE_POSITION_TOP 1
+#define DATE_POSITION_BOTTOM 2
+
+#define DATE_FORMAT_DD_MM_YY 0
+#define DATE_FORMAT_MM_DD_YYYY 1
+#define DATE_FORMAT_MON_D_AUG 2
+#define DATE_FORMAT_DD_SLASH_MM 3
+#define DATE_FORMAT_MM_SLASH_DD 4
+
+#define TEXT_COLOUR_MATCH_FOREGROUND -1
+#define CUSTOM_ROW_COUNT 3
+#define DATE_PART_COUNT 3
 
 // The time it takes for a layer to slide in or out.
 #define ANIMATION_DURATION 400
@@ -36,6 +58,18 @@
 static int text_align = TEXT_ALIGN_CENTER;
 static int foreground_color = 0xFFFFFF;
 static int background_color = 0x000000;
+static int row_colors[CUSTOM_ROW_COUNT] = {
+	TEXT_COLOUR_MATCH_FOREGROUND,
+	TEXT_COLOUR_MATCH_FOREGROUND,
+	TEXT_COLOUR_MATCH_FOREGROUND,
+};
+static int date_part_colors[DATE_PART_COUNT] = {
+	TEXT_COLOUR_MATCH_FOREGROUND,
+	TEXT_COLOUR_MATCH_FOREGROUND,
+	TEXT_COLOUR_MATCH_FOREGROUND,
+};
+static int date_position = DATE_POSITION_OFF;
+static int date_format = DATE_FORMAT_DD_MM_YY;
 static FontChoice font_choice = FONT_CHOICE_CLASSIC;
 static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
 static Language lang = EN_GB;
@@ -47,12 +81,18 @@ static GFont custom_font_medium_bold;
 static Window *window;
 static GRect screen_bounds;
 static bool window_loaded = false;
+static TextLayer *date_layers[DATE_PART_COUNT];
+static char date_text[DATE_PART_COUNT][8];
 
 typedef struct {
 	TextLayer *currentLayer;
 	TextLayer *nextLayer;
 	char lineStr1[BUFFER_SIZE];
 	char lineStr2[BUFFER_SIZE];
+	char currentFormat;
+	char nextFormat;
+	int currentRow;
+	int nextRow;
 	PropertyAnimation *animation1;
 	PropertyAnimation *animation2;
 } Line;
@@ -188,6 +228,12 @@ static void updateLineTo(Line *line, char *value, int delay)
 	TextLayer *tmp = line->nextLayer;
 	line->nextLayer = line->currentLayer;
 	line->currentLayer = tmp;
+	char tmp_format = line->nextFormat;
+	line->nextFormat = line->currentFormat;
+	line->currentFormat = tmp_format;
+	int tmp_row = line->nextRow;
+	line->nextRow = line->currentRow;
+	line->currentRow = tmp_row;
 }
 
 // Check to see if the current line needs to be updated
@@ -251,6 +297,32 @@ static int valid_text_align(int align_key)
 	}
 }
 
+static int valid_date_position(int position)
+{
+	switch (position) {
+		case DATE_POSITION_OFF:
+		case DATE_POSITION_TOP:
+		case DATE_POSITION_BOTTOM:
+			return position;
+		default:
+			return DATE_POSITION_OFF;
+	}
+}
+
+static int valid_date_format(int format)
+{
+	switch (format) {
+		case DATE_FORMAT_DD_MM_YY:
+		case DATE_FORMAT_MM_DD_YYYY:
+		case DATE_FORMAT_MON_D_AUG:
+		case DATE_FORMAT_DD_SLASH_MM:
+		case DATE_FORMAT_MM_SLASH_DD:
+			return format;
+		default:
+			return DATE_FORMAT_DD_MM_YY;
+	}
+}
+
 static Language valid_language(Language language)
 {
 	switch (language) {
@@ -266,6 +338,62 @@ static Language valid_language(Language language)
 		default:
 			return EN_GB;
 	}
+}
+
+static void format_corner_date(char buffer[], size_t buffer_size, const struct tm *date_time)
+{
+	static const char *days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+	static const char *months[] = {
+		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+	};
+	if (buffer_size == 0) {
+		return;
+	}
+
+	int day = date_time->tm_mday;
+	if (day < 1) {
+		day = 1;
+	} else if (day > 31) {
+		day = 31;
+	}
+	int month = date_time->tm_mon;
+	if (month < 0) {
+		month = 0;
+	} else if (month > 11) {
+		month = 11;
+	}
+	int weekday = date_time->tm_wday;
+	if (weekday < 0) {
+		weekday = 0;
+	} else if (weekday > 6) {
+		weekday = 6;
+	}
+	int year = date_time->tm_year + 1900;
+	if (year < 0) {
+		year = 0;
+	} else if (year > 9999) {
+		year = 9999;
+	}
+
+	switch (date_format) {
+		case DATE_FORMAT_MM_DD_YYYY:
+			snprintf(buffer, buffer_size, "%02d-%02d-%04d", month + 1, day, year);
+			break;
+		case DATE_FORMAT_MON_D_AUG:
+			snprintf(buffer, buffer_size, "%s %d %s", days[weekday], day, months[month]);
+			break;
+		case DATE_FORMAT_DD_SLASH_MM:
+			snprintf(buffer, buffer_size, "%02d/%02d", day, month + 1);
+			break;
+		case DATE_FORMAT_MM_SLASH_DD:
+			snprintf(buffer, buffer_size, "%02d/%02d", month + 1, day);
+			break;
+		default:
+			snprintf(buffer, buffer_size, "%02d-%02d-%02d", day, month + 1, year % 100);
+			break;
+	}
+	buffer[buffer_size - 1] = '\0';
 }
 
 static GColor colour_from_rgb(int rgb)
@@ -297,6 +425,44 @@ static GColor foreground_colour(void)
 	}
 	return foreground;
 #endif
+}
+
+static GColor configured_text_colour(int configured_colour)
+{
+	if (configured_colour == TEXT_COLOUR_MATCH_FOREGROUND) {
+		return foreground_colour();
+	}
+
+	GColor colour = colour_from_rgb(configured_colour);
+#ifndef PBL_COLOR
+	GColor background = background_colour();
+	if (gcolor_equal(colour, background)) {
+		return gcolor_equal(background, GColorBlack) ? GColorWhite : GColorBlack;
+	}
+#endif
+	return colour;
+}
+
+static GColor row_colour_for_index(int row)
+{
+	if (row < 0) {
+		row = 0;
+	} else if (row >= CUSTOM_ROW_COUNT) {
+		row = CUSTOM_ROW_COUNT - 1;
+	}
+
+	return configured_text_colour(row_colors[row]);
+}
+
+static GColor date_part_colour_for_index(int part)
+{
+	if (part < 0) {
+		part = 0;
+	} else if (part >= DATE_PART_COUNT) {
+		part = DATE_PART_COUNT - 1;
+	}
+
+	return configured_text_colour(date_part_colors[part]);
 }
 
 static GFont font_for_choice(FontChoice choice, bool bold)
@@ -361,23 +527,184 @@ static void configureBoldLayer(TextLayer *textlayer)
 		return;
 	}
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, true));
-	text_layer_set_text_color(textlayer, foreground_colour());
+	text_layer_set_text_color(textlayer, row_colour_for_index(2));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
 	text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
 }
 
 // Configure light line of text
-static void configureLightLayer(TextLayer *textlayer)
+static void configureLightLayer(TextLayer *textlayer, int row)
 {
 	if (textlayer == NULL) {
 		return;
 	}
 	text_layer_set_font(textlayer, font_for_choice(render_font_choice, false));
-	text_layer_set_text_color(textlayer, foreground_colour());
+	text_layer_set_text_color(textlayer, row_colour_for_index(row));
 	text_layer_set_background_color(textlayer, GColorClear);
 	text_layer_set_text_alignment(textlayer, lookup_text_alignment(text_align));
 	text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
+}
+
+static void configureLayerForFormat(TextLayer *textlayer, char format, int row)
+{
+	if (format == 'b') {
+		configureBoldLayer(textlayer);
+	} else {
+		configureLightLayer(textlayer, row);
+	}
+}
+
+static GRect date_layer_frame(void)
+{
+	const int height = 22;
+	const int horizontal_margin = PBL_IF_ROUND_ELSE(20, 4);
+	const int vertical_margin = 2;
+	int y = vertical_margin;
+
+	if (date_position == DATE_POSITION_BOTTOM) {
+		y = screen_bounds.size.h - height - vertical_margin;
+	}
+
+	return GRect(horizontal_margin, y, screen_bounds.size.w - (horizontal_margin * 2), height);
+}
+
+static GFont date_layer_font(void)
+{
+	return fonts_get_system_font(FONT_KEY_GOTHIC_18);
+}
+
+static int measured_date_part_width(int part, GFont font, int max_width)
+{
+	if (part < 0 || part >= DATE_PART_COUNT || date_text[part][0] == '\0') {
+		return 0;
+	}
+
+	GSize size = graphics_text_layout_get_content_size(
+		date_text[part],
+		font,
+		GRect(0, 0, max_width, 22),
+		GTextOverflowModeTrailingEllipsis,
+		GTextAlignmentLeft
+	);
+	int width = size.w + 1;
+	if (width < 1) {
+		return 1;
+	}
+	if (width > max_width) {
+		return max_width;
+	}
+	return width;
+}
+
+static void layoutDateLayers(void)
+{
+	GRect frame = date_layer_frame();
+	GFont font = date_layer_font();
+	int widths[DATE_PART_COUNT];
+	int total_width = 0;
+
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		widths[i] = measured_date_part_width(i, font, frame.size.w);
+		total_width += widths[i];
+	}
+
+	if (total_width > frame.size.w) {
+		total_width = frame.size.w;
+	}
+
+	int x = frame.origin.x;
+	if (text_align == TEXT_ALIGN_CENTER) {
+		x += (frame.size.w - total_width) / 2;
+	} else if (text_align == TEXT_ALIGN_RIGHT) {
+		x += frame.size.w - total_width;
+	}
+
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		if (date_layers[i] == NULL) {
+			continue;
+		}
+		int width = widths[i] > 0 ? widths[i] : 1;
+		layer_set_frame(text_layer_get_layer(date_layers[i]), GRect(x, frame.origin.y, width, frame.size.h));
+		layer_set_hidden(text_layer_get_layer(date_layers[i]), date_position == DATE_POSITION_OFF || widths[i] == 0);
+		x += widths[i];
+	}
+}
+
+static void configureDateLayer(TextLayer *textlayer, int part)
+{
+	if (textlayer == NULL) {
+		return;
+	}
+	text_layer_set_font(textlayer, date_layer_font());
+	text_layer_set_text_color(textlayer, date_part_colour_for_index(part));
+	text_layer_set_background_color(textlayer, GColorClear);
+	text_layer_set_text_alignment(textlayer, GTextAlignmentLeft);
+	text_layer_set_overflow_mode(textlayer, GTextOverflowModeTrailingEllipsis);
+}
+
+static void configureDateLayers(void)
+{
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		configureDateLayer(date_layers[i], i);
+	}
+	layoutDateLayers();
+}
+
+static bool is_date_separator(char value)
+{
+	return value == '-' || value == '/' || value == ' ';
+}
+
+static void split_corner_date(char source[])
+{
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		date_text[i][0] = '\0';
+	}
+
+	int part = 0;
+	int offset = 0;
+	for (int i = 0; source[i] != '\0' && part < DATE_PART_COUNT; i++) {
+		if (offset >= (int)sizeof(date_text[part]) - 1) {
+			continue;
+		}
+
+		date_text[part][offset++] = source[i];
+		date_text[part][offset] = '\0';
+
+		if (is_date_separator(source[i]) && source[i + 1] != '\0' && part < DATE_PART_COUNT - 1) {
+			part++;
+			offset = 0;
+		}
+	}
+}
+
+static void update_corner_date(struct tm *date_time)
+{
+	if (date_time == NULL) {
+		return;
+	}
+
+	if (date_position == DATE_POSITION_OFF) {
+		for (int i = 0; i < DATE_PART_COUNT; i++) {
+			date_text[i][0] = '\0';
+			if (date_layers[i] != NULL) {
+				text_layer_set_text(date_layers[i], date_text[i]);
+				layer_set_hidden(text_layer_get_layer(date_layers[i]), true);
+			}
+		}
+		return;
+	}
+
+	char formatted_date[16];
+	format_corner_date(formatted_date, sizeof(formatted_date), date_time);
+	split_corner_date(formatted_date);
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		if (date_layers[i] != NULL) {
+			text_layer_set_text(date_layers[i], date_text[i]);
+		}
+	}
+	configureDateLayers();
 }
 
 static void apply_window_colours(void)
@@ -397,8 +724,8 @@ static void apply_layer_styles(void)
 
 	for (int i = 0; i < NUM_LINES; i++)
 	{
-		configureLightLayer(lines[i].currentLayer);
-		configureLightLayer(lines[i].nextLayer);
+		configureLayerForFormat(lines[i].currentLayer, lines[i].currentFormat, lines[i].currentRow);
+		configureLayerForFormat(lines[i].nextLayer, lines[i].nextFormat, lines[i].nextRow);
 		if (lines[i].currentLayer != NULL) {
 			layer_mark_dirty(text_layer_get_layer(lines[i].currentLayer));
 		}
@@ -406,6 +733,7 @@ static void apply_layer_styles(void)
 			layer_mark_dirty(text_layer_get_layer(lines[i].nextLayer));
 		}
 	}
+	configureDateLayers();
 	forceDisplayUpdate = true;
 }
 
@@ -538,14 +866,9 @@ static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format
 	int i;
 	for (i = 0; i < NUM_LINES; i++) {
 		if (strlen(text[i]) > 0) {
-			if (format[i] == 'b')
-			{
-				configureBoldLayer(lines[i].nextLayer);
-			}
-			else
-			{
-				configureLightLayer(lines[i].nextLayer);
-			}
+			lines[i].nextFormat = format[i];
+			lines[i].nextRow = format[i] == 'b' ? 2 : i;
+			configureLayerForFormat(lines[i].nextLayer, format[i], lines[i].nextRow);
 		}
 		else
 		{
@@ -573,6 +896,7 @@ static void display_time(struct tm *t)
   // The current time text will be stored in the following strings
   char textLine[NUM_LINES][BUFFER_SIZE];
   char format[NUM_LINES];
+  update_corner_date(t);
   
   if (showTime || dateTimeout > 1) {
   	choose_time_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
@@ -602,6 +926,12 @@ static void initLineForStart(Line* line)
 	TextLayer* tmp  = line->currentLayer;
 	line->currentLayer = line->nextLayer;
 	line->nextLayer = tmp;
+	char tmp_format = line->currentFormat;
+	line->currentFormat = line->nextFormat;
+	line->nextFormat = tmp_format;
+	int tmp_row = line->currentRow;
+	line->currentRow = line->nextRow;
+	line->nextRow = tmp_row;
 	if (line->currentLayer == NULL) {
 		return;
 	}
@@ -618,6 +948,7 @@ static void display_initial_time(struct tm *t)
 	// The current time text will be stored in the following strings
 	char textLine[NUM_LINES][BUFFER_SIZE];
 	char format[NUM_LINES];
+	update_corner_date(t);
 
 	choose_time_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
 
@@ -747,6 +1078,46 @@ static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 			persist_write_int(BACKGROUND_COLOR_KEY, background_color);
 			apply_window_colours();
 			break;
+		case DATE_POSITION_KEY:
+			date_position = valid_date_position(new_tuple->value->uint8);
+			persist_write_int(DATE_POSITION_KEY, date_position);
+			update_corner_date(t);
+			break;
+		case DATE_FORMAT_KEY:
+			date_format = valid_date_format(new_tuple->value->uint8);
+			persist_write_int(DATE_FORMAT_KEY, date_format);
+			update_corner_date(t);
+			break;
+		case ROW_ONE_COLOR_KEY:
+			row_colors[0] = new_tuple->value->int32;
+			persist_write_int(ROW_ONE_COLOR_KEY, row_colors[0]);
+			apply_layer_styles();
+			break;
+		case ROW_TWO_COLOR_KEY:
+			row_colors[1] = new_tuple->value->int32;
+			persist_write_int(ROW_TWO_COLOR_KEY, row_colors[1]);
+			apply_layer_styles();
+			break;
+		case ROW_THREE_COLOR_KEY:
+			row_colors[2] = new_tuple->value->int32;
+			persist_write_int(ROW_THREE_COLOR_KEY, row_colors[2]);
+			apply_layer_styles();
+			break;
+		case DATE_PART_ONE_COLOR_KEY:
+			date_part_colors[0] = new_tuple->value->int32;
+			persist_write_int(DATE_PART_ONE_COLOR_KEY, date_part_colors[0]);
+			configureDateLayers();
+			break;
+		case DATE_PART_TWO_COLOR_KEY:
+			date_part_colors[1] = new_tuple->value->int32;
+			persist_write_int(DATE_PART_TWO_COLOR_KEY, date_part_colors[1]);
+			configureDateLayers();
+			break;
+		case DATE_PART_THREE_COLOR_KEY:
+			date_part_colors[2] = new_tuple->value->int32;
+			persist_write_int(DATE_PART_THREE_COLOR_KEY, date_part_colors[2]);
+			configureDateLayers();
+			break;
 		case TEST_HOUR_KEY:
 			requested_test_hour = new_tuple->value->uint8;
 			pending_test_hour = true;
@@ -800,13 +1171,16 @@ static void init_line(Line* line)
 		return;
 	}
 
-	// Configure a style
-	configureLightLayer(line->currentLayer);
-	configureLightLayer(line->nextLayer);
-
 	// Set the text buffers
 	line->lineStr1[0] = '\0';
 	line->lineStr2[0] = '\0';
+	line->currentFormat = ' ';
+	line->nextFormat = ' ';
+	line->currentRow = 0;
+	line->nextRow = 0;
+	// Configure a style
+	configureLightLayer(line->currentLayer, line->currentRow);
+	configureLightLayer(line->nextLayer, line->nextRow);
 	text_layer_set_text(line->currentLayer, line->lineStr1);
 	text_layer_set_text(line->nextLayer, line->lineStr2);
 
@@ -848,6 +1222,18 @@ static void window_load(Window *window)
 			layer_add_child(window_layer, (Layer *)lines[i].nextLayer);
 		}
 	}
+
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		date_layers[i] = text_layer_create(date_layer_frame());
+		if (date_layers[i] == NULL) {
+			APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create date layer part %d", i);
+			continue;
+		}
+		date_text[i][0] = '\0';
+		text_layer_set_text(date_layers[i], date_text[i]);
+		configureDateLayer(date_layers[i], i);
+		layer_add_child(window_layer, text_layer_get_layer(date_layers[i]));
+	}
 	window_loaded = true;
 
 	// Configure time on init
@@ -867,6 +1253,12 @@ static void window_unload(Window *window)
 	{
 		destroy_line(&lines[i]);
 	}
+	for (int i = 0; i < DATE_PART_COUNT; i++) {
+		if (date_layers[i] != NULL) {
+			text_layer_destroy(date_layers[i]);
+			date_layers[i] = NULL;
+		}
+	}
 	unload_custom_fonts();
 }
 
@@ -874,16 +1266,45 @@ static void handle_init() {
 	if (!persist_exists(SETTINGS_SCHEMA_KEY)
 			|| persist_read_int(SETTINGS_SCHEMA_KEY) < SETTINGS_SCHEMA_VERSION)
 	{
-		text_align = TEXT_ALIGN_CENTER;
-		foreground_color = 0xFFFFFF;
-		background_color = 0x000000;
-		font_choice = FONT_CHOICE_CLASSIC;
-		lang = EN_GB;
-		persist_write_int(TEXT_ALIGN_KEY, text_align);
-		persist_write_int(FOREGROUND_COLOR_KEY, foreground_color);
-		persist_write_int(BACKGROUND_COLOR_KEY, background_color);
-		persist_write_int(FONT_CHOICE_KEY, font_choice);
-		persist_write_int(LANGUAGE_KEY, lang);
+		if (!persist_exists(TEXT_ALIGN_KEY)) {
+			persist_write_int(TEXT_ALIGN_KEY, text_align);
+		}
+		if (!persist_exists(FOREGROUND_COLOR_KEY)) {
+			persist_write_int(FOREGROUND_COLOR_KEY, foreground_color);
+		}
+		if (!persist_exists(BACKGROUND_COLOR_KEY)) {
+			persist_write_int(BACKGROUND_COLOR_KEY, background_color);
+		}
+		if (!persist_exists(FONT_CHOICE_KEY)) {
+			persist_write_int(FONT_CHOICE_KEY, font_choice);
+		}
+		if (!persist_exists(LANGUAGE_KEY)) {
+			persist_write_int(LANGUAGE_KEY, lang);
+		}
+		if (!persist_exists(DATE_POSITION_KEY)) {
+			persist_write_int(DATE_POSITION_KEY, date_position);
+		}
+		if (!persist_exists(DATE_FORMAT_KEY)) {
+			persist_write_int(DATE_FORMAT_KEY, date_format);
+		}
+		if (!persist_exists(ROW_ONE_COLOR_KEY)) {
+			persist_write_int(ROW_ONE_COLOR_KEY, row_colors[0]);
+		}
+		if (!persist_exists(ROW_TWO_COLOR_KEY)) {
+			persist_write_int(ROW_TWO_COLOR_KEY, row_colors[1]);
+		}
+		if (!persist_exists(ROW_THREE_COLOR_KEY)) {
+			persist_write_int(ROW_THREE_COLOR_KEY, row_colors[2]);
+		}
+		if (!persist_exists(DATE_PART_ONE_COLOR_KEY)) {
+			persist_write_int(DATE_PART_ONE_COLOR_KEY, date_part_colors[0]);
+		}
+		if (!persist_exists(DATE_PART_TWO_COLOR_KEY)) {
+			persist_write_int(DATE_PART_TWO_COLOR_KEY, date_part_colors[1]);
+		}
+		if (!persist_exists(DATE_PART_THREE_COLOR_KEY)) {
+			persist_write_int(DATE_PART_THREE_COLOR_KEY, date_part_colors[2]);
+		}
 		persist_write_int(SETTINGS_SCHEMA_KEY, SETTINGS_SCHEMA_VERSION);
 	}
 
@@ -925,6 +1346,46 @@ static void handle_init() {
 	{
 		background_color = 0xFFFFFF;
 	}
+	if (persist_exists(DATE_POSITION_KEY))
+	{
+		date_position = valid_date_position(persist_read_int(DATE_POSITION_KEY));
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date position from store: %u", date_position);
+	}
+	if (persist_exists(DATE_FORMAT_KEY))
+	{
+		date_format = valid_date_format(persist_read_int(DATE_FORMAT_KEY));
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date format from store: %u", date_format);
+	}
+	if (persist_exists(ROW_ONE_COLOR_KEY))
+	{
+		row_colors[0] = persist_read_int(ROW_ONE_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read row one colour from store: %d", row_colors[0]);
+	}
+	if (persist_exists(ROW_TWO_COLOR_KEY))
+	{
+		row_colors[1] = persist_read_int(ROW_TWO_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read row two colour from store: %d", row_colors[1]);
+	}
+	if (persist_exists(ROW_THREE_COLOR_KEY))
+	{
+		row_colors[2] = persist_read_int(ROW_THREE_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read row three colour from store: %d", row_colors[2]);
+	}
+	if (persist_exists(DATE_PART_ONE_COLOR_KEY))
+	{
+		date_part_colors[0] = persist_read_int(DATE_PART_ONE_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date part one colour from store: %d", date_part_colors[0]);
+	}
+	if (persist_exists(DATE_PART_TWO_COLOR_KEY))
+	{
+		date_part_colors[1] = persist_read_int(DATE_PART_TWO_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date part two colour from store: %d", date_part_colors[1]);
+	}
+	if (persist_exists(DATE_PART_THREE_COLOR_KEY))
+	{
+		date_part_colors[2] = persist_read_int(DATE_PART_THREE_COLOR_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date part three colour from store: %d", date_part_colors[2]);
+	}
 
 	window = window_create();
 	window_set_background_color(window, colour_from_rgb(background_color));
@@ -937,7 +1398,7 @@ static void handle_init() {
 	window_stack_push(window, animated);
 
 	// Initialize message queue after window load so startup settings cannot race layer creation.
-	const int inbound_size = 128;
+	const int inbound_size = 256;
 	const int outbound_size = 64;
 	app_message_register_inbox_received(inbox_received_callback);
 	app_message_register_inbox_dropped(inbox_dropped_callback);

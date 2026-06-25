@@ -172,6 +172,108 @@
 						<option value="magenta">magenta</option>
 					</select>
 				</div>
+				<div class="form-group">
+					<label for="row-one-colour">minute row one</label>
+					<select class="form-control" id="row-one-colour" name="row_one_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="row-two-colour">minute row two</label>
+					<select class="form-control" id="row-two-colour" name="row_two_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="row-three-colour">hour row</label>
+					<select class="form-control" id="row-three-colour" name="row_three_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="date-part-one-colour">date first section</label>
+					<select class="form-control" id="date-part-one-colour" name="date_part_one_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="date-part-two-colour">date second section</label>
+					<select class="form-control" id="date-part-two-colour" name="date_part_two_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="date-part-three-colour">date third section</label>
+					<select class="form-control" id="date-part-three-colour" name="date_part_three_colour">
+						<option value="match" selected>match foreground</option>
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="orange">orange</option>
+						<option value="yellow">yellow</option>
+						<option value="green">green</option>
+						<option value="mint">mint</option>
+						<option value="cyan">cyan</option>
+						<option value="blue">blue</option>
+						<option value="purple">purple</option>
+						<option value="magenta">magenta</option>
+					</select>
+				</div>
 			</fieldset>
 
 			<fieldset>
@@ -192,6 +294,58 @@
 					<label>
 						<input type="radio" name="align" value="right" />
 						right
+					</label>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>Corner date:</legend>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="date_position" value="off" checked />
+						off
+					</label>
+				</div>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="date_position" value="top" />
+						top
+					</label>
+				</div>
+				<div class="radio-inline">
+					<label>
+						<input type="radio" name="date_position" value="bottom" />
+						bottom
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="date_format" value="dd_mm_yy" checked />
+						dd-mm-yy
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="date_format" value="mm_dd_yyyy" />
+						mm-dd-yyyy
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="date_format" value="mon_d_aug" />
+						Mon 3 Aug
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="date_format" value="dd_slash_mm" />
+						dd/mm
+					</label>
+				</div>
+				<div class="radio">
+					<label>
+						<input type="radio" name="date_format" value="mm_slash_dd" />
+						mm/dd
 					</label>
 				</div>
 			</fieldset>
@@ -271,22 +425,46 @@
 			classic: {
 				font: 'classic',
 				foreground_colour: 'white',
-				background_colour: 'black'
+				background_colour: 'black',
+				row_one_colour: 'match',
+				row_two_colour: 'match',
+				row_three_colour: 'match',
+				date_part_one_colour: 'match',
+				date_part_two_colour: 'match',
+				date_part_three_colour: 'match'
 			},
 			paper: {
 				font: 'sharp',
 				foreground_colour: 'black',
-				background_colour: 'white'
+				background_colour: 'white',
+				row_one_colour: 'match',
+				row_two_colour: 'match',
+				row_three_colour: 'match',
+				date_part_one_colour: 'match',
+				date_part_two_colour: 'match',
+				date_part_three_colour: 'match'
 			},
 			ocean: {
 				font: 'compact',
 				foreground_colour: 'cyan',
-				background_colour: 'blue'
+				background_colour: 'blue',
+				row_one_colour: 'match',
+				row_two_colour: 'match',
+				row_three_colour: 'match',
+				date_part_one_colour: 'match',
+				date_part_two_colour: 'match',
+				date_part_three_colour: 'match'
 			},
 			berry: {
 				font: 'tall',
 				foreground_colour: 'yellow',
-				background_colour: 'purple'
+				background_colour: 'purple',
+				row_one_colour: 'match',
+				row_two_colour: 'match',
+				row_three_colour: 'match',
+				date_part_one_colour: 'match',
+				date_part_two_colour: 'match',
+				date_part_three_colour: 'match'
 			}
 		};
 
@@ -307,12 +485,20 @@
 
 		function saveOptions() {
 			var options = {
-				schema:		2,
+				schema:		4,
 				text_align:	checkedValue('align') || 'center',
 				lang:		checkedValue('lang') || 'en_GB',
 				font:		checkedValue('font') || 'classic',
 				foreground_colour: document.querySelector('[name="foreground_colour"]').value || 'white',
 				background_colour: document.querySelector('[name="background_colour"]').value || 'black',
+				row_one_colour: document.querySelector('[name="row_one_colour"]').value || 'match',
+				row_two_colour: document.querySelector('[name="row_two_colour"]').value || 'match',
+				row_three_colour: document.querySelector('[name="row_three_colour"]').value || 'match',
+				date_part_one_colour: document.querySelector('[name="date_part_one_colour"]').value || 'match',
+				date_part_two_colour: document.querySelector('[name="date_part_two_colour"]').value || 'match',
+				date_part_three_colour: document.querySelector('[name="date_part_three_colour"]').value || 'match',
+				date_position: checkedValue('date_position') || 'off',
+				date_format: checkedValue('date_format') || 'dd_mm_yy',
 				preset: checkedValue('preset') || 'classic'
 			}
 			return options;
@@ -343,6 +529,18 @@
 			}
 			if (opts && opts.background_colour) {
 				document.querySelector('[name="background_colour"]').value = opts.background_colour;
+			}
+			document.querySelector('[name="row_one_colour"]').value = opts.row_one_colour || opts.minute_colour || 'match';
+			document.querySelector('[name="row_two_colour"]').value = opts.row_two_colour || opts.minute_colour || 'match';
+			document.querySelector('[name="row_three_colour"]').value = opts.row_three_colour || opts.hour_colour || 'match';
+			document.querySelector('[name="date_part_one_colour"]').value = opts.date_part_one_colour || opts.date_colour || 'match';
+			document.querySelector('[name="date_part_two_colour"]').value = opts.date_part_two_colour || opts.date_colour || 'match';
+			document.querySelector('[name="date_part_three_colour"]').value = opts.date_part_three_colour || opts.date_colour || 'match';
+			if (opts && opts.date_position) {
+				setChecked('date_position', opts.date_position);
+			}
+			if (opts && opts.date_format) {
+				setChecked('date_format', opts.date_format);
 			}
 			if (opts && opts.preset) {
 				setChecked('preset', opts.preset);
@@ -388,6 +586,12 @@
 				setChecked('font', preset.font);
 				document.querySelector('[name="foreground_colour"]').value = preset.foreground_colour;
 				document.querySelector('[name="background_colour"]').value = preset.background_colour;
+				document.querySelector('[name="row_one_colour"]').value = preset.row_one_colour;
+				document.querySelector('[name="row_two_colour"]').value = preset.row_two_colour;
+				document.querySelector('[name="row_three_colour"]').value = preset.row_three_colour;
+				document.querySelector('[name="date_part_one_colour"]').value = preset.date_part_one_colour;
+				document.querySelector('[name="date_part_two_colour"]').value = preset.date_part_two_colour;
+				document.querySelector('[name="date_part_three_colour"]').value = preset.date_part_three_colour;
 			});
 		});
 

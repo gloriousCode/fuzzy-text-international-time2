@@ -8,7 +8,7 @@ newer PebbleOS targets, especially Emery and Gabbro.
 
 The original watchface was designed around older 144x168 screens.  This
 version adds sharper high-resolution text, larger bundled fonts for
-modern displays, colour customisation, and layout checks that keep the
+modern displays, row/date colour customisation, and layout checks that keep the
 words inside the screen even when languages, font choices, or round
 displays make the text harder to fit.
 
@@ -39,7 +39,9 @@ Features:
  - Fit-safe line breaking across one to four lines of text
  - Automatic fallback to smaller font tiers when a line would overflow
  - Foreground and background colour customisation
+ - Optional separate colours for minute row one, minute row two, hour row, and corner date sections
  - Font presets and visual style presets
+ - Optional small corner date with compact numeric and abbreviated formats
  - Nice staggered animation
  - Multiple languages inherited from the original international face
 
@@ -68,7 +70,10 @@ phone:
 - Font preset
 - Visual preset
 - Foreground and background colours
+- Minute row one, minute row two, hour row, and date section text colours
 - Text alignment (centered, left, or right)
+- Optional corner date, shown at the top or bottom with up to three coloured sections
+- Corner date format (`dd-mm-yy`, `mm-dd-yyyy`, `Mon 3 Aug`, `dd/mm`, or `mm/dd`)
 - Language
 
 At this time the included languages are:
