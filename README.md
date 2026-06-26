@@ -68,7 +68,7 @@ The following options can be configured, using the Pebble app on your
 phone:
 
 - Font preset
-- Visual preset
+- Visual preset, including colour and corner date showcase presets
 - Foreground and background colours
 - Minute row one, minute row two, hour row, and date section text colours
 - Text alignment (centered, left, or right)

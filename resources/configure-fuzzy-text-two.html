@@ -83,30 +83,21 @@
 		<form id="config" role="form" class="input-lg">
 
 			<fieldset>
-				<legend>Presets:</legend>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="preset" value="classic" checked />
-						classic
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="preset" value="paper" />
-						paper
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="preset" value="ocean" />
-						ocean
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="preset" value="berry" />
-						berry
-					</label>
+				<legend>Preset:</legend>
+				<div class="form-group">
+					<label for="preset">style</label>
+					<select class="form-control" id="preset" name="preset">
+						<option value="classic" selected>classic</option>
+						<option value="paper">paper</option>
+						<option value="quiet">quiet</option>
+						<option value="ocean">ocean</option>
+						<option value="berry">berry</option>
+						<option value="traffic">traffic</option>
+						<option value="candy">candy</option>
+						<option value="terminal">terminal</option>
+						<option value="festival">festival</option>
+						<option value="arcade">arcade</option>
+					</select>
 				</div>
 			</fieldset>
 
@@ -300,53 +291,23 @@
 
 			<fieldset>
 				<legend>Corner date:</legend>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="date_position" value="off" checked />
-						off
-					</label>
+				<div class="form-group">
+					<label for="date-position">placement</label>
+					<select class="form-control" id="date-position" name="date_position">
+						<option value="off" selected>off</option>
+						<option value="top">top</option>
+						<option value="bottom">bottom</option>
+					</select>
 				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="date_position" value="top" />
-						top
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="date_position" value="bottom" />
-						bottom
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="date_format" value="dd_mm_yy" checked />
-						dd-mm-yy
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="date_format" value="mm_dd_yyyy" />
-						mm-dd-yyyy
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="date_format" value="mon_d_aug" />
-						Mon 3 Aug
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="date_format" value="dd_slash_mm" />
-						dd/mm
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="date_format" value="mm_slash_dd" />
-						mm/dd
-					</label>
+				<div class="form-group">
+					<label for="date-format">format</label>
+					<select class="form-control" id="date-format" name="date_format">
+						<option value="dd_mm_yy" selected>dd-mm-yy</option>
+						<option value="mm_dd_yyyy">mm-dd-yyyy</option>
+						<option value="mon_d_aug">Mon 3 Aug</option>
+						<option value="dd_slash_mm">dd/mm</option>
+						<option value="mm_slash_dd">mm/dd</option>
+					</select>
 				</div>
 			</fieldset>
 
@@ -423,6 +384,7 @@
 	<script>
 		var presets = {
 			classic: {
+				text_align: 'center',
 				font: 'classic',
 				foreground_colour: 'white',
 				background_colour: 'black',
@@ -431,9 +393,12 @@
 				row_three_colour: 'match',
 				date_part_one_colour: 'match',
 				date_part_two_colour: 'match',
-				date_part_three_colour: 'match'
+				date_part_three_colour: 'match',
+				date_position: 'off',
+				date_format: 'dd_mm_yy'
 			},
 			paper: {
+				text_align: 'center',
 				font: 'sharp',
 				foreground_colour: 'black',
 				background_colour: 'white',
@@ -442,29 +407,121 @@
 				row_three_colour: 'match',
 				date_part_one_colour: 'match',
 				date_part_two_colour: 'match',
-				date_part_three_colour: 'match'
+				date_part_three_colour: 'match',
+				date_position: 'top',
+				date_format: 'dd_slash_mm'
+			},
+			quiet: {
+				text_align: 'center',
+				font: 'compact',
+				foreground_colour: 'white',
+				background_colour: 'black',
+				row_one_colour: 'white',
+				row_two_colour: 'white',
+				row_three_colour: 'white',
+				date_part_one_colour: 'white',
+				date_part_two_colour: 'white',
+				date_part_three_colour: 'white',
+				date_position: 'off',
+				date_format: 'dd_mm_yy'
 			},
 			ocean: {
+				text_align: 'left',
 				font: 'compact',
 				foreground_colour: 'cyan',
 				background_colour: 'blue',
-				row_one_colour: 'match',
-				row_two_colour: 'match',
-				row_three_colour: 'match',
-				date_part_one_colour: 'match',
-				date_part_two_colour: 'match',
-				date_part_three_colour: 'match'
+				row_one_colour: 'mint',
+				row_two_colour: 'cyan',
+				row_three_colour: 'white',
+				date_part_one_colour: 'white',
+				date_part_two_colour: 'mint',
+				date_part_three_colour: 'cyan',
+				date_position: 'bottom',
+				date_format: 'mon_d_aug'
 			},
 			berry: {
+				text_align: 'right',
 				font: 'tall',
 				foreground_colour: 'yellow',
 				background_colour: 'purple',
-				row_one_colour: 'match',
-				row_two_colour: 'match',
-				row_three_colour: 'match',
-				date_part_one_colour: 'match',
-				date_part_two_colour: 'match',
-				date_part_three_colour: 'match'
+				row_one_colour: 'magenta',
+				row_two_colour: 'yellow',
+				row_three_colour: 'white',
+				date_part_one_colour: 'yellow',
+				date_part_two_colour: 'magenta',
+				date_part_three_colour: 'white',
+				date_position: 'top',
+				date_format: 'mm_dd_yyyy'
+			},
+			traffic: {
+				text_align: 'center',
+				font: 'classic',
+				foreground_colour: 'white',
+				background_colour: 'black',
+				row_one_colour: 'red',
+				row_two_colour: 'orange',
+				row_three_colour: 'green',
+				date_part_one_colour: 'red',
+				date_part_two_colour: 'yellow',
+				date_part_three_colour: 'green',
+				date_position: 'top',
+				date_format: 'dd_mm_yy'
+			},
+			candy: {
+				text_align: 'center',
+				font: 'sharp',
+				foreground_colour: 'purple',
+				background_colour: 'white',
+				row_one_colour: 'blue',
+				row_two_colour: 'magenta',
+				row_three_colour: 'purple',
+				date_part_one_colour: 'blue',
+				date_part_two_colour: 'magenta',
+				date_part_three_colour: 'purple',
+				date_position: 'bottom',
+				date_format: 'mm_slash_dd'
+			},
+			terminal: {
+				text_align: 'left',
+				font: 'compact',
+				foreground_colour: 'green',
+				background_colour: 'black',
+				row_one_colour: 'green',
+				row_two_colour: 'mint',
+				row_three_colour: 'cyan',
+				date_part_one_colour: 'green',
+				date_part_two_colour: 'mint',
+				date_part_three_colour: 'cyan',
+				date_position: 'bottom',
+				date_format: 'dd_slash_mm'
+			},
+			festival: {
+				text_align: 'center',
+				font: 'tall',
+				foreground_colour: 'yellow',
+				background_colour: 'blue',
+				row_one_colour: 'orange',
+				row_two_colour: 'magenta',
+				row_three_colour: 'yellow',
+				date_part_one_colour: 'cyan',
+				date_part_two_colour: 'magenta',
+				date_part_three_colour: 'yellow',
+				date_position: 'top',
+				date_format: 'mon_d_aug'
+			},
+			arcade: {
+				text_align: 'right',
+				font: 'classic',
+				foreground_colour: 'mint',
+				background_colour: 'black',
+				row_one_colour: 'cyan',
+				row_two_colour: 'mint',
+				row_three_colour: 'magenta',
+				date_part_one_colour: 'mint',
+				date_part_two_colour: 'cyan',
+				date_part_three_colour: 'magenta',
+				date_position: 'bottom',
+				date_format: 'mm_dd_yyyy'
 			}
 		};
 
@@ -483,6 +540,18 @@
 			});
 		}
 
+		function selectValue(name, fallback) {
+			var select = document.querySelector('[name="' + name + '"]');
+			return select && select.value ? select.value : fallback;
+		}
+
+		function setSelectValue(name, value) {
+			var select = document.querySelector('[name="' + name + '"]');
+			if (select) {
+				select.value = value;
+			}
+		}
+
 		function saveOptions() {
 			var options = {
 				schema:		4,
@@ -497,9 +566,9 @@
 				date_part_one_colour: document.querySelector('[name="date_part_one_colour"]').value || 'match',
 				date_part_two_colour: document.querySelector('[name="date_part_two_colour"]').value || 'match',
 				date_part_three_colour: document.querySelector('[name="date_part_three_colour"]').value || 'match',
-				date_position: checkedValue('date_position') || 'off',
-				date_format: checkedValue('date_format') || 'dd_mm_yy',
-				preset: checkedValue('preset') || 'classic'
+				date_position: selectValue('date_position', 'off'),
+				date_format: selectValue('date_format', 'dd_mm_yy'),
+				preset: selectValue('preset', 'classic')
 			}
 			return options;
 		}
@@ -537,13 +606,13 @@
 			document.querySelector('[name="date_part_two_colour"]').value = opts.date_part_two_colour || opts.date_colour || 'match';
 			document.querySelector('[name="date_part_three_colour"]').value = opts.date_part_three_colour || opts.date_colour || 'match';
 			if (opts && opts.date_position) {
-				setChecked('date_position', opts.date_position);
+				setSelectValue('date_position', opts.date_position);
 			}
 			if (opts && opts.date_format) {
-				setChecked('date_format', opts.date_format);
+				setSelectValue('date_format', opts.date_format);
 			}
 			if (opts && opts.preset) {
-				setChecked('preset', opts.preset);
+				setSelectValue('preset', opts.preset);
 			}
 		}
 
@@ -576,23 +645,24 @@
 			document.location = returnTo;
 		});
 
-		each('[name="preset"]', function(input) {
-			input.addEventListener('change', function() {
-				var preset = presets[this.value];
-				if (!preset) {
-					return;
-				}
+		document.querySelector('[name="preset"]').addEventListener('change', function() {
+			var preset = presets[this.value];
+			if (!preset) {
+				return;
+			}
 
-				setChecked('font', preset.font);
-				document.querySelector('[name="foreground_colour"]').value = preset.foreground_colour;
-				document.querySelector('[name="background_colour"]').value = preset.background_colour;
-				document.querySelector('[name="row_one_colour"]').value = preset.row_one_colour;
-				document.querySelector('[name="row_two_colour"]').value = preset.row_two_colour;
-				document.querySelector('[name="row_three_colour"]').value = preset.row_three_colour;
-				document.querySelector('[name="date_part_one_colour"]').value = preset.date_part_one_colour;
-				document.querySelector('[name="date_part_two_colour"]').value = preset.date_part_two_colour;
-				document.querySelector('[name="date_part_three_colour"]').value = preset.date_part_three_colour;
-			});
+			setChecked('align', preset.text_align);
+			setChecked('font', preset.font);
+			document.querySelector('[name="foreground_colour"]').value = preset.foreground_colour;
+			document.querySelector('[name="background_colour"]').value = preset.background_colour;
+			document.querySelector('[name="row_one_colour"]').value = preset.row_one_colour;
+			document.querySelector('[name="row_two_colour"]').value = preset.row_two_colour;
+			document.querySelector('[name="row_three_colour"]').value = preset.row_three_colour;
+			document.querySelector('[name="date_part_one_colour"]').value = preset.date_part_one_colour;
+			document.querySelector('[name="date_part_two_colour"]').value = preset.date_part_two_colour;
+			document.querySelector('[name="date_part_three_colour"]').value = preset.date_part_three_colour;
+			setSelectValue('date_position', preset.date_position);
+			setSelectValue('date_format', preset.date_format);
 		});
 
 		applyOptions();
