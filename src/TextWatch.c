@@ -47,6 +47,10 @@
 #define TEXT_COLOUR_MATCH_FOREGROUND -1
 #define CUSTOM_ROW_COUNT 3
 #define DATE_PART_COUNT 3
+#define DATE_LAYER_HEIGHT 22
+#define DATE_LAYER_VERTICAL_MARGIN 2
+#define QUIET_TIME_ICON_SIZE 18
+#define QUIET_TIME_ICON_SPACING 3
 
 // The time it takes for a layer to slide in or out.
 #define ANIMATION_DURATION 400
@@ -83,6 +87,8 @@ static GRect screen_bounds;
 static bool window_loaded = false;
 static TextLayer *date_layers[DATE_PART_COUNT];
 static char date_text[DATE_PART_COUNT][8];
+static Layer *quiet_time_icon_layer;
+static bool quiet_time_active = false;
 
 typedef struct {
 	TextLayer *currentLayer;
@@ -555,23 +561,43 @@ static void configureLayerForFormat(TextLayer *textlayer, char format, int row)
 	}
 }
 
-static GRect date_layer_frame(void)
+static GRect date_layer_frame_for_position(int position)
 {
-	const int height = 22;
 	const int horizontal_margin = PBL_IF_ROUND_ELSE(20, 4);
-	const int vertical_margin = 2;
-	int y = vertical_margin;
+	int y = DATE_LAYER_VERTICAL_MARGIN;
 
-	if (date_position == DATE_POSITION_BOTTOM) {
-		y = screen_bounds.size.h - height - vertical_margin;
+	if (position == DATE_POSITION_BOTTOM) {
+		y = screen_bounds.size.h - DATE_LAYER_HEIGHT - DATE_LAYER_VERTICAL_MARGIN;
 	}
 
-	return GRect(horizontal_margin, y, screen_bounds.size.w - (horizontal_margin * 2), height);
+	return GRect(horizontal_margin, y, screen_bounds.size.w - (horizontal_margin * 2), DATE_LAYER_HEIGHT);
+}
+
+static GRect date_layer_frame(void)
+{
+	return date_layer_frame_for_position(date_position);
 }
 
 static GFont date_layer_font(void)
 {
 	return fonts_get_system_font(FONT_KEY_GOTHIC_18);
+}
+
+static void quiet_time_icon_layer_update_proc(Layer *layer, GContext *ctx)
+{
+	if (!quiet_time_active) {
+		return;
+	}
+
+	GRect bounds = layer_get_bounds(layer);
+	int diameter = bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h;
+	int radius = diameter / 2;
+	GPoint centre = GPoint(bounds.size.w / 2, bounds.size.h / 2);
+
+	graphics_context_set_fill_color(ctx, date_part_colour_for_index(0));
+	graphics_fill_circle(ctx, centre, radius);
+	graphics_context_set_fill_color(ctx, background_colour());
+	graphics_fill_circle(ctx, GPoint(centre.x + (radius / 2), centre.y - (radius / 4)), radius);
 }
 
 static int measured_date_part_width(int part, GFont font, int max_width)
@@ -583,7 +609,7 @@ static int measured_date_part_width(int part, GFont font, int max_width)
 	GSize size = graphics_text_layout_get_content_size(
 		date_text[part],
 		font,
-		GRect(0, 0, max_width, 22),
+		GRect(0, 0, max_width, DATE_LAYER_HEIGHT),
 		GTextOverflowModeTrailingEllipsis,
 		GTextAlignmentLeft
 	);
@@ -597,15 +623,39 @@ static int measured_date_part_width(int part, GFont font, int max_width)
 	return width;
 }
 
+static int aligned_date_content_x(GRect frame, int content_width)
+{
+	int width = content_width;
+	if (width > frame.size.w) {
+		width = frame.size.w;
+	}
+
+	int x = frame.origin.x;
+	if (text_align == TEXT_ALIGN_CENTER) {
+		x += (frame.size.w - width) / 2;
+	} else if (text_align == TEXT_ALIGN_RIGHT) {
+		x += frame.size.w - width;
+	}
+	return x;
+}
+
 static void layoutDateLayers(void)
 {
 	GRect frame = date_layer_frame();
+	GRect top_frame = date_layer_frame_for_position(DATE_POSITION_TOP);
 	GFont font = date_layer_font();
 	int widths[DATE_PART_COUNT];
 	int total_width = 0;
+	bool date_is_top = date_position == DATE_POSITION_TOP;
+	int quiet_width = quiet_time_active ? QUIET_TIME_ICON_SIZE : 0;
+	int quiet_spacing = quiet_time_active && date_is_top ? QUIET_TIME_ICON_SPACING : 0;
+	int measured_width = frame.size.w - quiet_width - quiet_spacing;
+	if (measured_width < 1) {
+		measured_width = 1;
+	}
 
 	for (int i = 0; i < DATE_PART_COUNT; i++) {
-		widths[i] = measured_date_part_width(i, font, frame.size.w);
+		widths[i] = measured_date_part_width(i, font, date_is_top ? measured_width : frame.size.w);
 		total_width += widths[i];
 	}
 
@@ -613,11 +663,14 @@ static void layoutDateLayers(void)
 		total_width = frame.size.w;
 	}
 
-	int x = frame.origin.x;
-	if (text_align == TEXT_ALIGN_CENTER) {
-		x += (frame.size.w - total_width) / 2;
-	} else if (text_align == TEXT_ALIGN_RIGHT) {
-		x += frame.size.w - total_width;
+	int group_width = total_width;
+	if (date_is_top && quiet_time_active) {
+		group_width += QUIET_TIME_ICON_SIZE + QUIET_TIME_ICON_SPACING;
+	}
+
+	int x = aligned_date_content_x(date_is_top ? top_frame : frame, group_width);
+	if (date_is_top && quiet_time_active) {
+		x += QUIET_TIME_ICON_SIZE + QUIET_TIME_ICON_SPACING;
 	}
 
 	for (int i = 0; i < DATE_PART_COUNT; i++) {
@@ -629,6 +682,25 @@ static void layoutDateLayers(void)
 		layer_set_hidden(text_layer_get_layer(date_layers[i]), date_position == DATE_POSITION_OFF || widths[i] == 0);
 		x += widths[i];
 	}
+
+	if (quiet_time_icon_layer == NULL) {
+		return;
+	}
+
+	if (!quiet_time_active) {
+		layer_set_hidden(quiet_time_icon_layer, true);
+		return;
+	}
+
+	int quiet_group_width = QUIET_TIME_ICON_SIZE;
+	if (date_is_top && total_width > 0) {
+		quiet_group_width += QUIET_TIME_ICON_SPACING + total_width;
+	}
+	int quiet_x = aligned_date_content_x(top_frame, quiet_group_width);
+	int quiet_y = top_frame.origin.y + ((top_frame.size.h - QUIET_TIME_ICON_SIZE) / 2);
+	layer_set_frame(quiet_time_icon_layer, GRect(quiet_x, quiet_y, QUIET_TIME_ICON_SIZE, QUIET_TIME_ICON_SIZE));
+	layer_set_hidden(quiet_time_icon_layer, false);
+	layer_mark_dirty(quiet_time_icon_layer);
 }
 
 static void configureDateLayer(TextLayer *textlayer, int part)
@@ -681,7 +753,10 @@ static void split_corner_date(char source[])
 
 static void update_corner_date(struct tm *date_time)
 {
+	quiet_time_active = quiet_time_is_active();
+
 	if (date_time == NULL) {
+		configureDateLayers();
 		return;
 	}
 
@@ -693,6 +768,7 @@ static void update_corner_date(struct tm *date_time)
 				layer_set_hidden(text_layer_get_layer(date_layers[i]), true);
 			}
 		}
+		configureDateLayers();
 		return;
 	}
 
@@ -713,6 +789,9 @@ static void apply_window_colours(void)
 		return;
 	}
 	window_set_background_color(window, background_colour());
+	if (quiet_time_icon_layer != NULL) {
+		layer_mark_dirty(quiet_time_icon_layer);
+	}
 }
 
 static void apply_layer_styles(void)
@@ -1234,6 +1313,15 @@ static void window_load(Window *window)
 		configureDateLayer(date_layers[i], i);
 		layer_add_child(window_layer, text_layer_get_layer(date_layers[i]));
 	}
+
+	quiet_time_icon_layer = layer_create(GRect(0, 0, QUIET_TIME_ICON_SIZE, QUIET_TIME_ICON_SIZE));
+	if (quiet_time_icon_layer == NULL) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create quiet time icon layer");
+	} else {
+		layer_set_update_proc(quiet_time_icon_layer, quiet_time_icon_layer_update_proc);
+		layer_set_hidden(quiet_time_icon_layer, true);
+		layer_add_child(window_layer, quiet_time_icon_layer);
+	}
 	window_loaded = true;
 
 	// Configure time on init
@@ -1258,6 +1346,10 @@ static void window_unload(Window *window)
 			text_layer_destroy(date_layers[i]);
 			date_layers[i] = NULL;
 		}
+	}
+	if (quiet_time_icon_layer != NULL) {
+		layer_destroy(quiet_time_icon_layer);
+		quiet_time_icon_layer = NULL;
 	}
 	unload_custom_fonts();
 }
