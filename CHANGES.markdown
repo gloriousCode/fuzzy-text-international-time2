@@ -23,7 +23,9 @@ version 1.5.0
 - Adds a warm/cool segmented outer ring, green HUD display, larger digital
   clock, and full-face analogue mode.
 - Adds wrist-tap toggling between digital and analogue HUD modes.
-- Shows analogue seconds only while the backlight is on.
+- Shows analogue seconds only while the backlight is on, with a config option
+  to disable them.
+- Adds a quiet mode moon indicator and HUD date-format configuration.
 - Adds host-side geometry tests for the new scalable HUD layout.
 
 version 1.4.9

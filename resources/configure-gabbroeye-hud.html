@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>GabbroEye HUD Settings</title>
+	<style>
+		body {
+			background: #050805;
+			color: #8fff8f;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+			margin: 0;
+			padding: 24px;
+		}
+		label {
+			display: block;
+			font-weight: 700;
+			margin-bottom: 8px;
+		}
+		.field {
+			margin-bottom: 18px;
+		}
+		.checkbox {
+			align-items: center;
+			display: flex;
+			gap: 10px;
+		}
+		select,
+		button {
+			background: #123b16;
+			border: 1px solid #29c63a;
+			color: #d8ffd8;
+			font: inherit;
+			padding: 10px;
+			width: 100%;
+		}
+		input[type="checkbox"] {
+			accent-color: #29c63a;
+			height: 20px;
+			width: 20px;
+		}
+		button {
+			font-weight: 700;
+			margin-top: 20px;
+		}
+	</style>
+</head>
+<body>
+	<form id="config">
+		<div class="field">
+			<label for="date_format">Date format</label>
+			<select id="date_format" name="date_format">
+				<option value="dd_mm_yy">DD-MM-YY</option>
+				<option value="mm_dd_yyyy">MM-DD-YYYY</option>
+				<option value="mon_d_aug">SUN 5 JUL</option>
+				<option value="dd_slash_mm">DD/MM</option>
+				<option value="mm_slash_dd">MM/DD</option>
+			</select>
+		</div>
+		<label class="checkbox" for="analogue_seconds">
+			<input id="analogue_seconds" name="analogue_seconds" type="checkbox" checked>
+			<span>Show analogue seconds while backlight is on</span>
+		</label>
+		<button type="submit">Save</button>
+	</form>
+	<script>
+		function getParam(name) {
+			var match = new RegExp("[#&]" + name + "=([^&]*)").exec(window.location.hash);
+			return match ? decodeURIComponent(match[1]) : "";
+		}
+
+		function loadOptions() {
+			var optionsParam = getParam("options");
+			if (!optionsParam) {
+				return;
+			}
+			try {
+				var options = JSON.parse(optionsParam);
+				if (options.date_format) {
+					document.getElementById("date_format").value = options.date_format;
+				}
+				if (typeof options.analogue_seconds !== "undefined") {
+					document.getElementById("analogue_seconds").checked = options.analogue_seconds !== false;
+				}
+			}
+			catch (err) {
+				console.log("Unable to load options: " + err.message);
+			}
+		}
+
+		document.getElementById("config").addEventListener("submit", function(event) {
+			event.preventDefault();
+			var options = {
+				date_format: document.getElementById("date_format").value,
+				analogue_seconds: document.getElementById("analogue_seconds").checked
+			};
+			document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(options));
+		});
+
+		loadOptions();
+	</script>
+</body>
+</html>

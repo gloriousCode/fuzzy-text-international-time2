@@ -36,10 +36,10 @@ clean:
 	rm -rf build
 
 config-emery:
-	pebble emu-app-config --emulator emery --file resources/configure-fuzzy-text-two.html
+	pebble emu-app-config --emulator emery --file resources/configure-gabbroeye-hud.html
 
 config-gabbro:
-	pebble emu-app-config --emulator gabbro --file resources/configure-fuzzy-text-two.html
+	pebble emu-app-config --emulator gabbro --file resources/configure-gabbroeye-hud.html
 
 l: c
 	deploypebble.sh load build/fuzzy-text-two.pbw

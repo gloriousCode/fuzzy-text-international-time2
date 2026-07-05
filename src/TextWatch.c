@@ -25,11 +25,12 @@
 #define DATE_PART_ONE_COLOR_KEY 11
 #define DATE_PART_TWO_COLOR_KEY 12
 #define DATE_PART_THREE_COLOR_KEY 13
+#define ANALOGUE_SECONDS_KEY 14
 #define SETTINGS_SCHEMA_KEY 97
 #define TEST_HOUR_KEY 98
 #define TEST_MINUTE_KEY 99
 
-#define SETTINGS_SCHEMA_VERSION 4
+#define SETTINGS_SCHEMA_VERSION 5
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
@@ -75,6 +76,7 @@ static int date_part_colors[DATE_PART_COUNT] = {
 };
 static int date_position = DATE_POSITION_OFF;
 static int date_format = DATE_FORMAT_DD_MM_YY;
+static bool analogue_seconds_enabled = true;
 static FontChoice font_choice = FONT_CHOICE_CLASSIC;
 static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
 static Language lang = EN_GB;
@@ -108,6 +110,7 @@ typedef struct {
 static Line lines[NUM_LINES];
 
 static struct tm *t;
+static struct tm current_time;
 static struct tm test_time;
 static bool use_test_time = false;
 static bool pending_test_hour = false;
@@ -115,6 +118,30 @@ static bool pending_test_minute = false;
 static int requested_test_hour = 0;
 static int requested_test_minute = 0;
 static bool rendered_backlight_on = false;
+static bool subscribed_to_seconds = false;
+
+static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
+
+static void update_tick_subscription(bool use_second_ticks)
+{
+	if (subscribed_to_seconds == use_second_ticks) {
+		return;
+	}
+
+	tick_timer_service_subscribe(use_second_ticks ? SECOND_UNIT : MINUTE_UNIT, handle_minute_tick);
+	subscribed_to_seconds = use_second_ticks;
+}
+
+static struct tm *remember_time(struct tm *date_time)
+{
+	if (date_time == NULL) {
+		return NULL;
+	}
+
+	current_time = *date_time;
+	t = &current_time;
+	return t;
+}
 
 static void refresh_spy_face(struct tm *date_time)
 {
@@ -130,15 +157,24 @@ static void refresh_spy_face(struct tm *date_time)
 		.second = date_time->tm_sec,
 		.day = date_time->tm_mday,
 		.month = date_time->tm_mon,
+		.year = date_time->tm_year + 1900,
 		.weekday = date_time->tm_wday,
+		.date_format = date_format,
 		.battery_percent = battery_state.charge_percent,
 		.bluetooth_connected = bluetooth_connection_service_peek(),
 		.backlight_on = backlight_on,
+		.quiet_time_active = quiet_time_is_active(),
+		.analogue_seconds_enabled = analogue_seconds_enabled,
 		.twenty_four_hour_style = clock_is_24h_style(),
 	};
 
 	rendered_backlight_on = backlight_on;
 	spy_face_layer_set_state(spy_face_layer, &state);
+	if (backlight_on && spy_face_layer_wants_second_ticks(spy_face_layer)) {
+		update_tick_subscription(true);
+	} else if (subscribed_to_seconds) {
+		update_tick_subscription(false);
+	}
 }
 
 static int currentNLines;
@@ -1081,23 +1117,26 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 	if (use_test_time) {
 		return;
 	}
-	t = tick_time;
+	t = remember_time(tick_time);
 
 	if ((units_changed & MINUTE_UNIT) == 0) {
 		bool backlight_on = light_is_on();
-		if (backlight_on || rendered_backlight_on) {
-			refresh_spy_face(tick_time);
+		if ((backlight_on || rendered_backlight_on)
+				&& spy_face_layer_wants_second_ticks(spy_face_layer)) {
+			refresh_spy_face(t);
+		} else {
+			update_tick_subscription(false);
 		}
 		return;
 	}
 
-	refresh_spy_face(tick_time);
+	refresh_spy_face(t);
 
 	if (!showTime) {
 		dateTimeout++;
 	}
 
-	display_time(tick_time);
+	display_time(t);
 }
 
 static void handle_battery_state(BatteryChargeState charge_state)
@@ -1117,6 +1156,7 @@ static void handle_accel_tap(AccelAxisType axis, int32_t direction)
 	(void)axis;
 	(void)direction;
 	spy_face_layer_toggle_mode(spy_face_layer);
+	refresh_spy_face(t);
 }
 
 /**
@@ -1227,6 +1267,12 @@ static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 			date_format = valid_date_format(new_tuple->value->uint8);
 			persist_write_int(DATE_FORMAT_KEY, date_format);
 			update_corner_date(t);
+			refresh_spy_face(t);
+			break;
+		case ANALOGUE_SECONDS_KEY:
+			analogue_seconds_enabled = new_tuple->value->uint8 != 0;
+			persist_write_bool(ANALOGUE_SECONDS_KEY, analogue_seconds_enabled);
+			refresh_spy_face(t);
 			break;
 		case ROW_ONE_COLOR_KEY:
 			row_colors[0] = new_tuple->value->int32;
@@ -1396,7 +1442,7 @@ static void window_load(Window *window)
 	time_t raw_time;
 
 	time(&raw_time);
-	t = localtime(&raw_time);
+	t = remember_time(localtime(&raw_time));
 	display_initial_time(t);
 
 }
@@ -1468,6 +1514,9 @@ static void handle_init() {
 		}
 		if (!persist_exists(DATE_PART_THREE_COLOR_KEY)) {
 			persist_write_int(DATE_PART_THREE_COLOR_KEY, date_part_colors[2]);
+		}
+		if (!persist_exists(ANALOGUE_SECONDS_KEY)) {
+			persist_write_bool(ANALOGUE_SECONDS_KEY, analogue_seconds_enabled);
 		}
 		persist_write_int(SETTINGS_SCHEMA_KEY, SETTINGS_SCHEMA_VERSION);
 	}
@@ -1550,6 +1599,11 @@ static void handle_init() {
 		date_part_colors[2] = persist_read_int(DATE_PART_THREE_COLOR_KEY);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read date part three colour from store: %d", date_part_colors[2]);
 	}
+	if (persist_exists(ANALOGUE_SECONDS_KEY))
+	{
+		analogue_seconds_enabled = persist_read_bool(ANALOGUE_SECONDS_KEY);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read analogue seconds setting from store: %u", analogue_seconds_enabled);
+	}
 
 	window = window_create();
 	window_set_background_color(window, colour_from_rgb(background_color));
@@ -1569,7 +1623,7 @@ static void handle_init() {
 	app_message_open(inbound_size, outbound_size);
   
 	// Subscribe to ticks and status services for the HUD face.
-	tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
+	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
 	battery_state_service_subscribe(handle_battery_state);
 	bluetooth_connection_service_subscribe(handle_bluetooth_connection);
 	accel_tap_service_subscribe(handle_accel_tap);

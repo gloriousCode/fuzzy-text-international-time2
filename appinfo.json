@@ -13,9 +13,12 @@
         "ROW_THREE_COLOR": 10,
         "DATE_PART_ONE_COLOR": 11,
         "DATE_PART_TWO_COLOR": 12,
-        "DATE_PART_THREE_COLOR": 13
+        "DATE_PART_THREE_COLOR": 13,
+        "ANALOGUE_SECONDS": 14
     },
-    "capabilities": [],
+    "capabilities": [
+        "configurable"
+    ],
     "companyName": "gloriousCode",
     "longName": "GabbroEye HUD",
     "projectType": "native",
@@ -42,6 +45,12 @@
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_BOLD_48",
+                "file": "fonts/Roboto-Bold.ttf",
+                "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
+            },
+            {
+                "type": "font",
+                "name": "FONT_ROBOTO_BOLD_42",
                 "file": "fonts/Roboto-Bold.ttf",
                 "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
             }

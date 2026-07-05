@@ -12,6 +12,14 @@ typedef enum {
   SPY_FACE_MODE_ANALOGUE = 1,
 } SpyFaceMode;
 
+typedef enum {
+  SPY_FACE_DATE_FORMAT_DD_MM_YY = 0,
+  SPY_FACE_DATE_FORMAT_MM_DD_YYYY = 1,
+  SPY_FACE_DATE_FORMAT_MON_D_AUG = 2,
+  SPY_FACE_DATE_FORMAT_DD_SLASH_MM = 3,
+  SPY_FACE_DATE_FORMAT_MM_SLASH_DD = 4,
+} SpyFaceDateFormat;
+
 typedef struct {
   SpyFaceState state;
   SpyFaceMode mode;
@@ -68,6 +76,16 @@ static void spy_draw_text(GContext *ctx, const char *text, GFont font, GRect fra
   graphics_context_set_text_color(ctx, colour);
   graphics_draw_text(ctx, text, font, frame, GTextOverflowModeTrailingEllipsis,
       alignment, NULL);
+}
+
+static void spy_draw_moon_icon(GContext *ctx, GPoint centre, int radius,
+    GColor moon_colour, GColor shadow_colour)
+{
+  graphics_context_set_fill_color(ctx, moon_colour);
+  graphics_fill_circle(ctx, centre, radius);
+  graphics_context_set_fill_color(ctx, shadow_colour);
+  graphics_fill_circle(ctx, GPoint(centre.x + (radius / 2), centre.y - (radius / 4)),
+      radius);
 }
 
 static GPoint spy_hand_point(GPoint centre, int along, int lateral, int degrees)
@@ -263,8 +281,6 @@ static void spy_draw_reticle(GContext *ctx, SpyFaceGeometry geometry)
   graphics_draw_line(ctx, GPoint(centre.x - radius, centre.y + radius),
       GPoint(centre.x + radius, centre.y - radius));
 
-  graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
-  graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 4));
 }
 
 static void spy_format_time(char *buffer, size_t buffer_size, const SpyFaceState *state)
@@ -295,9 +311,14 @@ static void spy_format_ampm(char *buffer, size_t buffer_size, const SpyFaceState
 static void spy_format_date(char *buffer, size_t buffer_size, const SpyFaceState *state)
 {
   static const char *weekdays[] = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
+  static const char *months[] = {
+    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+  };
   int month = state->month + 1;
   int day = state->day;
   int weekday = state->weekday;
+  int year = state->year;
   if (month < 1) {
     month = 1;
   } else if (month > 12) {
@@ -311,8 +332,30 @@ static void spy_format_date(char *buffer, size_t buffer_size, const SpyFaceState
   if (weekday < 0 || weekday > 6) {
     weekday = 0;
   }
+  if (year < 0) {
+    year = 0;
+  } else if (year > 9999) {
+    year = 9999;
+  }
 
-  snprintf(buffer, buffer_size, "%02d.%02d %s", month, day, weekdays[weekday]);
+  switch (state->date_format) {
+    case SPY_FACE_DATE_FORMAT_MM_DD_YYYY:
+      snprintf(buffer, buffer_size, "%02d-%02d-%04d", month, day, year);
+      break;
+    case SPY_FACE_DATE_FORMAT_MON_D_AUG:
+      snprintf(buffer, buffer_size, "%s %d %s", weekdays[weekday], day,
+          months[month - 1]);
+      break;
+    case SPY_FACE_DATE_FORMAT_DD_SLASH_MM:
+      snprintf(buffer, buffer_size, "%02d/%02d", day, month);
+      break;
+    case SPY_FACE_DATE_FORMAT_MM_SLASH_DD:
+      snprintf(buffer, buffer_size, "%02d/%02d", month, day);
+      break;
+    default:
+      snprintf(buffer, buffer_size, "%02d-%02d-%02d", day, month, year % 100);
+      break;
+  }
   buffer[buffer_size - 1] = '\0';
 }
 
@@ -392,7 +435,7 @@ static void spy_draw_digital_display(GContext *ctx, SpyFaceGeometry geometry,
       state->bluetooth_connected ? "LINKED" : "NO LINK", state->battery_percent);
   status_text[sizeof(status_text) - 1] = '\0';
 
-  spy_draw_text(ctx, "GABBRO WATCH v2.01", label_font,
+  spy_draw_text(ctx, "WATCH v2.01 BETA", label_font,
       GRect(display.origin.x + pad, display.origin.y + 2,
           display.size.w - (2 * pad), spy_face_scaled_value(geometry.min_side, 20)),
       GTextAlignmentCenter, bright_green);
@@ -405,27 +448,42 @@ static void spy_draw_digital_display(GContext *ctx, SpyFaceGeometry geometry,
           display.origin.y + spy_face_scaled_value(geometry.min_side, 18),
           (display.size.w / 2) - pad, spy_face_scaled_value(geometry.min_side, 18)),
       GTextAlignmentRight, bright_green);
+  if (state->quiet_time_active) {
+    spy_draw_moon_icon(ctx,
+        GPoint(display.origin.x + spy_face_scaled_value(geometry.min_side, 15),
+            display.origin.y + spy_face_scaled_value(geometry.min_side, 28)),
+        spy_face_scaled_value(geometry.min_side, 6), bright_green,
+        spy_colour(0, 83, 22));
+  }
 
   spy_draw_reticle(ctx, geometry);
 
   spy_draw_text(ctx, time_text, time_font,
-      GRect(display.origin.x + 1, display.origin.y + spy_face_scaled_value(geometry.min_side, 38),
-          display.size.w - 2, spy_face_scaled_value(geometry.min_side, 58)),
+      GRect(display.origin.x + spy_face_scaled_value(geometry.min_side, 4),
+          display.origin.y + spy_face_scaled_value(geometry.min_side, 40),
+          display.size.w - spy_face_scaled_value(geometry.min_side, 8),
+          spy_face_scaled_value(geometry.min_side, 54)),
       GTextAlignmentCenter, bright_green);
   spy_draw_text(ctx, ampm_text, small_font,
       GRect(display.origin.x + display.size.w - spy_face_scaled_value(geometry.min_side, 38),
-          display.origin.y + spy_face_scaled_value(geometry.min_side, 82),
+          display.origin.y + spy_face_scaled_value(geometry.min_side, 78),
           spy_face_scaled_value(geometry.min_side, 30), spy_face_scaled_value(geometry.min_side, 18)),
       GTextAlignmentCenter, middle_green);
   spy_draw_digital_status_rectangles(ctx, geometry, display);
 }
 
 static void spy_draw_analogue_digital_readout(GContext *ctx, SpyFaceGeometry geometry,
-    const SpyFaceState *state, int radius, GColor bright_green, GColor middle_green)
+    const SpyFaceState *state, int radius, GColor bright_green)
 {
   char time_text[8];
   int readout_width = spy_face_scaled_value(geometry.min_side, 96);
   int readout_height = spy_face_scaled_value(geometry.min_side, 22);
+  if (geometry.min_side >= 200 && readout_width < 88) {
+    readout_width = 88;
+  }
+  if (geometry.min_side >= 200 && readout_height < 22) {
+    readout_height = 22;
+  }
   int readout_y = geometry.centre_y + radius - spy_face_scaled_value(geometry.min_side, 58);
   GRect readout = GRect(geometry.centre_x - (readout_width / 2), readout_y,
       readout_width, readout_height);
@@ -462,6 +520,12 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
   graphics_draw_circle(ctx, centre, radius);
   graphics_draw_circle(ctx, centre, radius - spy_face_scaled_value(geometry.min_side, 14));
   graphics_draw_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 34));
+  if (state->quiet_time_active) {
+    spy_draw_moon_icon(ctx,
+        GPoint(geometry.centre_x + spy_face_scaled_value(geometry.min_side, 40),
+            geometry.centre_y - spy_face_scaled_value(geometry.min_side, 47)),
+        spy_face_scaled_value(geometry.min_side, 7), bright_green, band_green);
+  }
 
   for (int tick = 0; tick < 60; tick++) {
     int angle = tick * 6;
@@ -476,9 +540,6 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
 
   int hour_angle = ((state->hour % 12) * 30) + ((state->minute * 30) / 60);
   int minute_angle = state->minute * 6;
-
-  spy_draw_analogue_digital_readout(ctx, geometry, state, radius, bright_green,
-      middle_green);
 
   GColor hand_outline = spy_colour(93, 96, 92);
   GColor hand_fill = spy_colour(236, 238, 229);
@@ -501,7 +562,7 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
   graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
   graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 5));
 
-  if (state->backlight_on) {
+  if (state->backlight_on && state->analogue_seconds_enabled) {
     int second_angle = state->second * 6;
     graphics_context_set_stroke_color(ctx, spy_colour(205, 42, 13));
     graphics_draw_line(ctx, centre,
@@ -509,6 +570,8 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
     graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
     graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 5));
   }
+
+  spy_draw_analogue_digital_readout(ctx, geometry, state, radius, bright_green);
 }
 
 static void spy_face_layer_update_proc(Layer *layer, GContext *ctx)
@@ -542,7 +605,7 @@ Layer *spy_face_layer_create(GRect frame)
   data->state.battery_percent = 100;
   data->state.bluetooth_connected = true;
   data->mode = SPY_FACE_MODE_DIGITAL;
-  data->time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_54));
+  data->time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_42));
   layer_set_update_proc(layer, spy_face_layer_update_proc);
   return layer;
 }
@@ -583,4 +646,16 @@ void spy_face_layer_toggle_mode(Layer *layer)
       ? SPY_FACE_MODE_ANALOGUE
       : SPY_FACE_MODE_DIGITAL;
   layer_mark_dirty(layer);
+}
+
+bool spy_face_layer_wants_second_ticks(Layer *layer)
+{
+  if (layer == NULL) {
+    return false;
+  }
+
+  SpyFaceLayerData *data = layer_get_data(layer);
+  return data->mode == SPY_FACE_MODE_ANALOGUE
+      && data->state.analogue_seconds_enabled
+      && data->state.backlight_on;
 }
