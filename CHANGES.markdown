@@ -4,7 +4,7 @@
 Changes
 ========
 
-The latest version is 1.4.9.  To update, remove the watchface from your
+The latest version is 1.5.0.  To update, remove the watchface from your
 watch and then load it again from your locker.
 
 The iOS version has to go through the Apple Store approval process - so
@@ -14,6 +14,17 @@ watchface.
 
 Android users do not need to wait for the Pebble app to update before
 updating the watchface.
+
+version 1.5.0
+-------------
+
+- Adds the GabbroEye HUD face with scalable native drawing for the 260x260
+  Gabbro display.
+- Adds a warm/cool segmented outer ring, green HUD display, larger digital
+  clock, and full-face analogue mode.
+- Adds wrist-tap toggling between digital and analogue HUD modes.
+- Shows analogue seconds only while the backlight is on.
+- Adds host-side geometry tests for the new scalable HUD layout.
 
 version 1.4.9
 -------------

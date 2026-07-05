@@ -1,6 +1,7 @@
 #include <pebble.h>
 
 #include "num2words.h"
+#include "spy_face.h"
 #include "text_layout.h"
 #include "text_lines.h"
 
@@ -88,6 +89,7 @@ static bool window_loaded = false;
 static TextLayer *date_layers[DATE_PART_COUNT];
 static char date_text[DATE_PART_COUNT][8];
 static Layer *quiet_time_icon_layer;
+static Layer *spy_face_layer;
 static bool quiet_time_active = false;
 
 typedef struct {
@@ -112,6 +114,32 @@ static bool pending_test_hour = false;
 static bool pending_test_minute = false;
 static int requested_test_hour = 0;
 static int requested_test_minute = 0;
+static bool rendered_backlight_on = false;
+
+static void refresh_spy_face(struct tm *date_time)
+{
+	if (spy_face_layer == NULL || date_time == NULL) {
+		return;
+	}
+
+	BatteryChargeState battery_state = battery_state_service_peek();
+	bool backlight_on = light_is_on();
+	SpyFaceState state = {
+		.hour = date_time->tm_hour,
+		.minute = date_time->tm_min,
+		.second = date_time->tm_sec,
+		.day = date_time->tm_mday,
+		.month = date_time->tm_mon,
+		.weekday = date_time->tm_wday,
+		.battery_percent = battery_state.charge_percent,
+		.bluetooth_connected = bluetooth_connection_service_peek(),
+		.backlight_on = backlight_on,
+		.twenty_four_hour_style = clock_is_24h_style(),
+	};
+
+	rendered_backlight_on = backlight_on;
+	spy_face_layer_set_state(spy_face_layer, &state);
+}
 
 static int currentNLines;
 static bool forceDisplayUpdate = false;
@@ -972,6 +1000,8 @@ static int configureLayersForText(char text[NUM_LINES][BUFFER_SIZE], char format
 // Update screen based on new time
 static void display_time(struct tm *t)
 {
+  refresh_spy_face(t);
+
   // The current time text will be stored in the following strings
   char textLine[NUM_LINES][BUFFER_SIZE];
   char format[NUM_LINES];
@@ -1024,6 +1054,8 @@ static void initLineForStart(Line* line)
 // Update screen without animation first time we start the watchface
 static void display_initial_time(struct tm *t)
 {
+	refresh_spy_face(t);
+
 	// The current time text will be stored in the following strings
 	char textLine[NUM_LINES][BUFFER_SIZE];
 	char format[NUM_LINES];
@@ -1050,12 +1082,41 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 		return;
 	}
 	t = tick_time;
-  
-  if (!showTime) {
-    dateTimeout++;
-  }
-  
+
+	if ((units_changed & MINUTE_UNIT) == 0) {
+		bool backlight_on = light_is_on();
+		if (backlight_on || rendered_backlight_on) {
+			refresh_spy_face(tick_time);
+		}
+		return;
+	}
+
+	refresh_spy_face(tick_time);
+
+	if (!showTime) {
+		dateTimeout++;
+	}
+
 	display_time(tick_time);
+}
+
+static void handle_battery_state(BatteryChargeState charge_state)
+{
+	(void)charge_state;
+	refresh_spy_face(t);
+}
+
+static void handle_bluetooth_connection(bool connected)
+{
+	(void)connected;
+	refresh_spy_face(t);
+}
+
+static void handle_accel_tap(AccelAxisType axis, int32_t direction)
+{
+	(void)axis;
+	(void)direction;
+	spy_face_layer_toggle_mode(spy_face_layer);
 }
 
 /**
@@ -1322,6 +1383,13 @@ static void window_load(Window *window)
 		layer_set_hidden(quiet_time_icon_layer, true);
 		layer_add_child(window_layer, quiet_time_icon_layer);
 	}
+
+	spy_face_layer = spy_face_layer_create(screen_bounds);
+	if (spy_face_layer == NULL) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create spy face layer");
+	} else {
+		layer_add_child(window_layer, spy_face_layer);
+	}
 	window_loaded = true;
 
 	// Configure time on init
@@ -1350,6 +1418,10 @@ static void window_unload(Window *window)
 	if (quiet_time_icon_layer != NULL) {
 		layer_destroy(quiet_time_icon_layer);
 		quiet_time_icon_layer = NULL;
+	}
+	if (spy_face_layer != NULL) {
+		spy_face_layer_destroy(spy_face_layer);
+		spy_face_layer = NULL;
 	}
 	unload_custom_fonts();
 }
@@ -1496,8 +1568,11 @@ static void handle_init() {
 	app_message_register_inbox_dropped(inbox_dropped_callback);
 	app_message_open(inbound_size, outbound_size);
   
-	// Subscribe to minute ticks
-	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+	// Subscribe to ticks and status services for the HUD face.
+	tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
+	battery_state_service_subscribe(handle_battery_state);
+	bluetooth_connection_service_subscribe(handle_bluetooth_connection);
+	accel_tap_service_subscribe(handle_accel_tap);
 
 #if DEBUG
 	// Button functionality
@@ -1508,6 +1583,9 @@ static void handle_init() {
 static void handle_deinit()
 {
 	tick_timer_service_unsubscribe();
+	battery_state_service_unsubscribe();
+	bluetooth_connection_service_unsubscribe();
+	accel_tap_service_unsubscribe();
 	app_message_deregister_callbacks();
 
 	// Free window

@@ -22,6 +22,11 @@ test:
 		src/strings-sv.c \
 		-o build/text_layout_test
 	./build/text_layout_test
+	$(CC) -std=c99 -Wall -Wextra -Werror -Isrc \
+		tests/spy_face_geometry_test.c \
+		src/spy_face_geometry.c \
+		-o build/spy_face_geometry_test
+	./build/spy_face_geometry_test
 
 lint: build
 

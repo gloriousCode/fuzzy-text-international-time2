@@ -15,11 +15,9 @@
         "DATE_PART_TWO_COLOR": 12,
         "DATE_PART_THREE_COLOR": 13
     },
-    "capabilities": [
-        "configurable"
-    ],
+    "capabilities": [],
     "companyName": "gloriousCode",
-    "longName": "Fuzzy Text Two",
+    "longName": "GabbroEye HUD",
     "projectType": "native",
     "resources": {
         "media": [
@@ -27,30 +25,30 @@
                 "type": "font",
                 "name": "FONT_ROBOTO_CONDENSED_54",
                 "file": "fonts/Roboto-Condensed.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
+                "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_BOLD_54",
                 "file": "fonts/Roboto-Bold.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
+                "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_CONDENSED_48",
                 "file": "fonts/Roboto-Condensed.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
+                "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
             },
             {
                 "type": "font",
                 "name": "FONT_ROBOTO_BOLD_48",
                 "file": "fonts/Roboto-Bold.ttf",
-                "characterRegex": "[ A-Za-zÀ-ÿ'-]"
+                "characterRegex": "[ 0-9:./%A-Za-zÀ-ÿ'-]"
             }
         ]
     },
     "sdkVersion": "3",
-    "shortName": "Fuzzy Text Two",
+    "shortName": "GabbroEye",
     "targetPlatforms": [
         "aplite",
         "basalt",
@@ -61,8 +59,8 @@
         "gabbro"
     ],
     "uuid": "bf4b4493-24d6-49e1-9388-4100aa55d9ba",
-    "versionCode": 14,
-    "versionLabel": "1.4.9",
+    "versionCode": 15,
+    "versionLabel": "1.5.0",
     "watchapp": {
         "watchface": true
     }
