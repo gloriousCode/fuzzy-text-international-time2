@@ -1,6 +1,6 @@
 var VERSION = "1.5.0";
 var OPTIONS_STORAGE_KEY = "gabbroeye-hud-options-v1";
-var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-gabbroeye-hud.html";
+var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-fuzzy-text-two.html";
 
 var dateFormats = {
   dd_mm_yy: 0,
@@ -8,6 +8,11 @@ var dateFormats = {
   mon_d_aug: 2,
   dd_slash_mm: 3,
   mm_slash_dd: 4
+};
+
+var displayModes = {
+  digital: 0,
+  analogue: 1
 };
 
 function readyCallback() {
@@ -22,7 +27,8 @@ function showConfiguration() {
 
 function webviewclosed(event) {
   var options = parseConfigurationResponse(event && event.response);
-  if (typeof options.date_format === "undefined" &&
+  if (typeof options.display_mode === "undefined" &&
+      typeof options.date_format === "undefined" &&
       typeof options.analogue_seconds === "undefined") {
     return;
   }
@@ -81,7 +87,8 @@ function prepareConfiguration(serializedSettings) {
 
   return {
     "7": dateFormats[settings.date_format] || dateFormats.dd_mm_yy,
-    "14": settings.analogue_seconds === false ? 0 : 1
+    "14": settings.analogue_seconds === false ? 0 : 1,
+    "15": displayModes[settings.display_mode] || displayModes.digital
   };
 }
 

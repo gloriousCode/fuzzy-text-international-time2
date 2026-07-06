@@ -20,12 +20,12 @@ Features
 - Green HUD display with current time, date, battery percentage, and link state
 - Open lower ring so the warm and cool segments stay on the sides of the face
 - Larger bundled-font digital time rendering on Gabbro
-- Configurable HUD date format and analogue seconds behaviour
+- Configurable HUD display mode, date format, and analogue seconds behaviour
 - Full-face analogue dial mode
 - Second-level refresh for the live watch display
 - Analogue seconds are shown only while the backlight is on
 - Quiet mode moon indicator
-- Wrist-tap toggle between digital and analogue HUD modes
+- Configurable digital or analogue HUD mode
 - Geometry tests covering Gabbro, Emery, and classic rectangular screens
 
 Preview
@@ -47,10 +47,10 @@ The original fuzzy text implementation is still present underneath the top HUD
 layer in this branch.  That keeps the existing project build structure intact
 while the new face is iterated on.
 
-The GabbroEye HUD exposes a small configuration page for the date format and
-analogue seconds behaviour.  The JavaScript companion sends only the HUD keys;
-legacy Fuzzy Text alignment, font, and colour options are intentionally not
-exposed.
+The GabbroEye HUD exposes a small configuration page for display mode, date
+format, and analogue seconds behaviour.  The JavaScript companion sends only
+the HUD keys; legacy Fuzzy Text alignment, font, and colour options are
+intentionally not exposed.
 
 Checks
 ------

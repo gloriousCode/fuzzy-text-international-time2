@@ -1,672 +1,114 @@
 <!DOCTYPE html>
-<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
-<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
-<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
-<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<html lang="en">
 <head>
-
-	<!-- Basic Page Needs
-  ================================================== -->
 	<meta charset="utf-8">
-	<title>Configure Fuzzy Text Two</title>
-	<meta name="description" content="configuration page for Fuzzy Text Two, a Pebble watchface">
-	<meta name="author" content="gloriousCode">
-
-	<!-- Mobile Specific Metas
-  ================================================== -->
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>GabbroEye HUD Settings</title>
 	<style>
 		body {
+			background: #050805;
+			color: #8fff8f;
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 			margin: 0;
-			padding: 16px;
-			color: #111;
-			background: #f6f4ef;
-		}
-		.container {
-			max-width: 760px;
-			margin: 0 auto;
-		}
-		.hidden {
-			display: none;
-		}
-		fieldset {
-			margin: 14px 0;
-			padding: 12px 14px;
-			border: 1px solid #b8b5ad;
-			background: #fff;
-		}
-		legend {
-			padding: 0 6px;
-			font-weight: 700;
+			padding: 24px;
 		}
 		label {
 			display: block;
-			margin: 8px 0;
+			font-weight: 700;
+			margin-bottom: 8px;
 		}
-		select {
-			margin: 4px 0 10px;
-			padding: 6px;
-			min-width: 160px;
+		.field {
+			margin-bottom: 18px;
 		}
-		.btn,
+		.checkbox {
+			align-items: center;
+			display: flex;
+			gap: 10px;
+		}
+		select,
 		button {
-			display: inline-block;
-			margin-right: 8px;
-			padding: 8px 14px;
-			border-radius: 4px;
-			border: 1px solid #777;
-			background: #eee;
-			color: #111;
-			text-decoration: none;
-			font-size: 16px;
+			background: #123b16;
+			border: 1px solid #29c63a;
+			color: #d8ffd8;
+			font: inherit;
+			padding: 10px;
+			width: 100%;
 		}
-		.btn-primary {
-			background: #2f6fda;
-			border-color: #2558ad;
-			color: #fff;
+		input[type="checkbox"] {
+			accent-color: #29c63a;
+			height: 20px;
+			width: 20px;
+		}
+		button {
+			font-weight: 700;
+			margin-top: 20px;
 		}
 	</style>
-
 </head>
 <body>
-
-	<!-- Primary Page Layout
-	================================================== -->
-
-	<div class="container">
-		<header>
-			<h1>Configure Fuzzy Text Two</h1>
-		</header>
-
-		<form id="config" role="form" class="input-lg">
-
-			<fieldset>
-				<legend>Preset:</legend>
-				<div class="form-group">
-					<label for="preset">style</label>
-					<select class="form-control" id="preset" name="preset">
-						<option value="classic" selected>classic</option>
-						<option value="paper">paper</option>
-						<option value="quiet">quiet</option>
-						<option value="ocean">ocean</option>
-						<option value="berry">berry</option>
-						<option value="traffic">traffic</option>
-						<option value="candy">candy</option>
-						<option value="terminal">terminal</option>
-						<option value="festival">festival</option>
-						<option value="arcade">arcade</option>
-					</select>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>Fonts:</legend>
-				<div class="radio">
-					<label>
-						<input type="radio" name="font" value="classic" checked />
-						classic Bitham
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="font" value="sharp" />
-						sharp Gothic
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="font" value="compact" />
-						compact Gothic
-					</label>
-				</div>
-				<div class="radio">
-					<label>
-						<input type="radio" name="font" value="tall" />
-						tall Bitham
-					</label>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>Colours:</legend>
-				<div class="form-group">
-					<label for="foreground-colour">foreground</label>
-					<select class="form-control" id="foreground-colour" name="foreground_colour">
-						<option value="white" selected>white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="background-colour">background</label>
-					<select class="form-control" id="background-colour" name="background_colour">
-						<option value="black" selected>black</option>
-						<option value="white">white</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="row-one-colour">minute row one</label>
-					<select class="form-control" id="row-one-colour" name="row_one_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="row-two-colour">minute row two</label>
-					<select class="form-control" id="row-two-colour" name="row_two_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="row-three-colour">hour row</label>
-					<select class="form-control" id="row-three-colour" name="row_three_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="date-part-one-colour">date first section</label>
-					<select class="form-control" id="date-part-one-colour" name="date_part_one_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="date-part-two-colour">date second section</label>
-					<select class="form-control" id="date-part-two-colour" name="date_part_two_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="date-part-three-colour">date third section</label>
-					<select class="form-control" id="date-part-three-colour" name="date_part_three_colour">
-						<option value="match" selected>match foreground</option>
-						<option value="white">white</option>
-						<option value="black">black</option>
-						<option value="red">red</option>
-						<option value="orange">orange</option>
-						<option value="yellow">yellow</option>
-						<option value="green">green</option>
-						<option value="mint">mint</option>
-						<option value="cyan">cyan</option>
-						<option value="blue">blue</option>
-						<option value="purple">purple</option>
-						<option value="magenta">magenta</option>
-					</select>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>Text align:</legend>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="align" value="left" />
-						left
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="align" value="center" checked />
-						center
-					</label>
-				</div>
-				<div class="radio-inline">
-					<label>
-						<input type="radio" name="align" value="right" />
-						right
-					</label>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>Corner date:</legend>
-				<div class="form-group">
-					<label for="date-position">placement</label>
-					<select class="form-control" id="date-position" name="date_position">
-						<option value="off" selected>off</option>
-						<option value="top">top</option>
-						<option value="bottom">bottom</option>
-					</select>
-				</div>
-				<div class="form-group">
-					<label for="date-format">format</label>
-					<select class="form-control" id="date-format" name="date_format">
-						<option value="dd_mm_yy" selected>dd-mm-yy</option>
-						<option value="mm_dd_yyyy">mm-dd-yyyy</option>
-						<option value="mon_d_aug">Mon 3 Aug</option>
-						<option value="dd_slash_mm">dd/mm</option>
-						<option value="mm_slash_dd">mm/dd</option>
-					</select>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>Language:</legend>
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="ca" />
-						Català
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="de" />
-						Deutsch
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="en_GB" checked />
-						English (Great Britain)
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="en_US" />
-						English (United States)
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="es" />
-						Español
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="fr" />
-						Français
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="no" />
-						Norsk
-					</label>
-				</div>
-
-				<div class="radio">
-					<label>
-						<input type="radio" name="lang" value="sv" />
-						Svenska
-					</label>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<a href="pebblejs://close" class="btn btn-lg btn-default" role="button">Cancel</a>
-				<button type="button" class="btn btn-lg btn-primary" id="b-submit">Save</button>
-			</fieldset>
-		</form>
-
-	</div><!-- container -->
-
-<!-- End Document
-================================================== -->
-
+	<form id="config">
+		<div class="field">
+			<label for="display_mode">Display mode</label>
+			<select id="display_mode" name="display_mode">
+				<option value="digital">Digital</option>
+				<option value="analogue">Analogue</option>
+			</select>
+		</div>
+		<div class="field">
+			<label for="date_format">Date format</label>
+			<select id="date_format" name="date_format">
+				<option value="dd_mm_yy">DD-MM-YY</option>
+				<option value="mm_dd_yyyy">MM-DD-YYYY</option>
+				<option value="mon_d_aug">SUN 5 JUL</option>
+				<option value="dd_slash_mm">DD/MM</option>
+				<option value="mm_slash_dd">MM/DD</option>
+			</select>
+		</div>
+		<label class="checkbox" for="analogue_seconds">
+			<input id="analogue_seconds" name="analogue_seconds" type="checkbox" checked>
+			<span>Show analogue seconds while backlight is on</span>
+		</label>
+		<button type="submit">Save</button>
+	</form>
 	<script>
-		var presets = {
-			classic: {
-				text_align: 'center',
-				font: 'classic',
-				foreground_colour: 'white',
-				background_colour: 'black',
-				row_one_colour: 'match',
-				row_two_colour: 'match',
-				row_three_colour: 'match',
-				date_part_one_colour: 'match',
-				date_part_two_colour: 'match',
-				date_part_three_colour: 'match',
-				date_position: 'off',
-				date_format: 'dd_mm_yy'
-			},
-			paper: {
-				text_align: 'center',
-				font: 'sharp',
-				foreground_colour: 'black',
-				background_colour: 'white',
-				row_one_colour: 'match',
-				row_two_colour: 'match',
-				row_three_colour: 'match',
-				date_part_one_colour: 'match',
-				date_part_two_colour: 'match',
-				date_part_three_colour: 'match',
-				date_position: 'top',
-				date_format: 'dd_slash_mm'
-			},
-			quiet: {
-				text_align: 'center',
-				font: 'compact',
-				foreground_colour: 'white',
-				background_colour: 'black',
-				row_one_colour: 'white',
-				row_two_colour: 'white',
-				row_three_colour: 'white',
-				date_part_one_colour: 'white',
-				date_part_two_colour: 'white',
-				date_part_three_colour: 'white',
-				date_position: 'off',
-				date_format: 'dd_mm_yy'
-			},
-			ocean: {
-				text_align: 'left',
-				font: 'compact',
-				foreground_colour: 'cyan',
-				background_colour: 'blue',
-				row_one_colour: 'mint',
-				row_two_colour: 'cyan',
-				row_three_colour: 'white',
-				date_part_one_colour: 'white',
-				date_part_two_colour: 'mint',
-				date_part_three_colour: 'cyan',
-				date_position: 'bottom',
-				date_format: 'mon_d_aug'
-			},
-			berry: {
-				text_align: 'right',
-				font: 'tall',
-				foreground_colour: 'yellow',
-				background_colour: 'purple',
-				row_one_colour: 'magenta',
-				row_two_colour: 'yellow',
-				row_three_colour: 'white',
-				date_part_one_colour: 'yellow',
-				date_part_two_colour: 'magenta',
-				date_part_three_colour: 'white',
-				date_position: 'top',
-				date_format: 'mm_dd_yyyy'
-			},
-			traffic: {
-				text_align: 'center',
-				font: 'classic',
-				foreground_colour: 'white',
-				background_colour: 'black',
-				row_one_colour: 'red',
-				row_two_colour: 'orange',
-				row_three_colour: 'green',
-				date_part_one_colour: 'red',
-				date_part_two_colour: 'yellow',
-				date_part_three_colour: 'green',
-				date_position: 'top',
-				date_format: 'dd_mm_yy'
-			},
-			candy: {
-				text_align: 'center',
-				font: 'sharp',
-				foreground_colour: 'purple',
-				background_colour: 'white',
-				row_one_colour: 'blue',
-				row_two_colour: 'magenta',
-				row_three_colour: 'purple',
-				date_part_one_colour: 'blue',
-				date_part_two_colour: 'magenta',
-				date_part_three_colour: 'purple',
-				date_position: 'bottom',
-				date_format: 'mm_slash_dd'
-			},
-			terminal: {
-				text_align: 'left',
-				font: 'compact',
-				foreground_colour: 'green',
-				background_colour: 'black',
-				row_one_colour: 'green',
-				row_two_colour: 'mint',
-				row_three_colour: 'cyan',
-				date_part_one_colour: 'green',
-				date_part_two_colour: 'mint',
-				date_part_three_colour: 'cyan',
-				date_position: 'bottom',
-				date_format: 'dd_slash_mm'
-			},
-			festival: {
-				text_align: 'center',
-				font: 'tall',
-				foreground_colour: 'yellow',
-				background_colour: 'blue',
-				row_one_colour: 'orange',
-				row_two_colour: 'magenta',
-				row_three_colour: 'yellow',
-				date_part_one_colour: 'cyan',
-				date_part_two_colour: 'magenta',
-				date_part_three_colour: 'yellow',
-				date_position: 'top',
-				date_format: 'mon_d_aug'
-			},
-			arcade: {
-				text_align: 'right',
-				font: 'classic',
-				foreground_colour: 'mint',
-				background_colour: 'black',
-				row_one_colour: 'cyan',
-				row_two_colour: 'mint',
-				row_three_colour: 'magenta',
-				date_part_one_colour: 'mint',
-				date_part_two_colour: 'cyan',
-				date_part_three_colour: 'magenta',
-				date_position: 'bottom',
-				date_format: 'mm_dd_yyyy'
-			}
-		};
-
-		function each(selector, fn) {
-			Array.prototype.forEach.call(document.querySelectorAll(selector), fn);
+		function getParam(name) {
+			var match = new RegExp("[#&]" + name + "=([^&]*)").exec(window.location.hash);
+			return match ? decodeURIComponent(match[1]) : "";
 		}
 
-		function checkedValue(name) {
-			var input = document.querySelector('[name="' + name + '"]:checked');
-			return input ? input.value : undefined;
-		}
-
-		function setChecked(name, value) {
-			each('[name="' + name + '"]', function(input) {
-				input.checked = input.value === value;
-			});
-		}
-
-		function selectValue(name, fallback) {
-			var select = document.querySelector('[name="' + name + '"]');
-			return select && select.value ? select.value : fallback;
-		}
-
-		function setSelectValue(name, value) {
-			var select = document.querySelector('[name="' + name + '"]');
-			if (select) {
-				select.value = value;
-			}
-		}
-
-		function saveOptions() {
-			var options = {
-				schema:		4,
-				text_align:	checkedValue('align') || 'center',
-				lang:		checkedValue('lang') || 'en_GB',
-				font:		checkedValue('font') || 'classic',
-				foreground_colour: document.querySelector('[name="foreground_colour"]').value || 'white',
-				background_colour: document.querySelector('[name="background_colour"]').value || 'black',
-				row_one_colour: document.querySelector('[name="row_one_colour"]').value || 'match',
-				row_two_colour: document.querySelector('[name="row_two_colour"]').value || 'match',
-				row_three_colour: document.querySelector('[name="row_three_colour"]').value || 'match',
-				date_part_one_colour: document.querySelector('[name="date_part_one_colour"]').value || 'match',
-				date_part_two_colour: document.querySelector('[name="date_part_two_colour"]').value || 'match',
-				date_part_three_colour: document.querySelector('[name="date_part_three_colour"]').value || 'match',
-				date_position: selectValue('date_position', 'off'),
-				date_format: selectValue('date_format', 'dd_mm_yy'),
-				preset: selectValue('preset', 'classic')
-			}
-			return options;
-		}
-
-		function applyOptions() {
-			var optionsParam = getParam('options');
-			var opts = {};
-			if (optionsParam) {
-				try {
-					opts = JSON.parse(optionsParam);
-				}
-				catch (err) {
-					opts = {};
-				}
-			}
-			if (opts && opts.text_align) {
-				setChecked('align', opts.text_align);
-			}
-			if (opts && opts.lang) {
-				setChecked('lang', opts.lang);
-			}
-			if (opts && opts.font) {
-				setChecked('font', opts.font);
-			}
-			if (opts && opts.foreground_colour) {
-				document.querySelector('[name="foreground_colour"]').value = opts.foreground_colour;
-			}
-			if (opts && opts.background_colour) {
-				document.querySelector('[name="background_colour"]').value = opts.background_colour;
-			}
-			document.querySelector('[name="row_one_colour"]').value = opts.row_one_colour || opts.minute_colour || 'match';
-			document.querySelector('[name="row_two_colour"]').value = opts.row_two_colour || opts.minute_colour || 'match';
-			document.querySelector('[name="row_three_colour"]').value = opts.row_three_colour || opts.hour_colour || 'match';
-			document.querySelector('[name="date_part_one_colour"]').value = opts.date_part_one_colour || opts.date_colour || 'match';
-			document.querySelector('[name="date_part_two_colour"]').value = opts.date_part_two_colour || opts.date_colour || 'match';
-			document.querySelector('[name="date_part_three_colour"]').value = opts.date_part_three_colour || opts.date_colour || 'match';
-			if (opts && opts.date_position) {
-				setSelectValue('date_position', opts.date_position);
-			}
-			if (opts && opts.date_format) {
-				setSelectValue('date_format', opts.date_format);
-			}
-			if (opts && opts.preset) {
-				setSelectValue('preset', opts.preset);
-			}
-		}
-
-		function getParam(key) {
-			var params = window.location.hash + '&' + window.location.search;
-			var val;
-			params.replace(/(?:^|[#?&])([a-z_]+)=([^&]+)/ig, function(_, k, v) {
-				if (key === k) {
-					val = decodeURIComponent(v);
-				}
-			});
-			return val;
-		}
-
-		document.getElementById('b-submit').addEventListener('click', function() {
-			var returnTo = getParam('return_to');
-			var location = returnTo
-				? returnTo + encodeURIComponent(JSON.stringify(saveOptions()))
-				: "pebblejs://close#" + encodeURIComponent(JSON.stringify(saveOptions()));
-			document.location = location;
-		});
-
-		document.querySelector('[href="pebblejs://close"]').addEventListener('click', function(event) {
-			var returnTo = getParam('return_to');
-			if (!returnTo) {
+		function loadOptions() {
+			var optionsParam = getParam("options");
+			if (!optionsParam) {
 				return;
 			}
+			try {
+				var options = JSON.parse(optionsParam);
+				if (options.display_mode) {
+					document.getElementById("display_mode").value = options.display_mode;
+				}
+				if (options.date_format) {
+					document.getElementById("date_format").value = options.date_format;
+				}
+				if (typeof options.analogue_seconds !== "undefined") {
+					document.getElementById("analogue_seconds").checked = options.analogue_seconds !== false;
+				}
+			}
+			catch (err) {
+				console.log("Unable to load options: " + err.message);
+			}
+		}
 
+		document.getElementById("config").addEventListener("submit", function(event) {
 			event.preventDefault();
-			document.location = returnTo;
+			var options = {
+				display_mode: document.getElementById("display_mode").value,
+				date_format: document.getElementById("date_format").value,
+				analogue_seconds: document.getElementById("analogue_seconds").checked
+			};
+			document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(options));
 		});
 
-		document.querySelector('[name="preset"]').addEventListener('change', function() {
-			var preset = presets[this.value];
-			if (!preset) {
-				return;
-			}
-
-			setChecked('align', preset.text_align);
-			setChecked('font', preset.font);
-			document.querySelector('[name="foreground_colour"]').value = preset.foreground_colour;
-			document.querySelector('[name="background_colour"]').value = preset.background_colour;
-			document.querySelector('[name="row_one_colour"]').value = preset.row_one_colour;
-			document.querySelector('[name="row_two_colour"]').value = preset.row_two_colour;
-			document.querySelector('[name="row_three_colour"]').value = preset.row_three_colour;
-			document.querySelector('[name="date_part_one_colour"]').value = preset.date_part_one_colour;
-			document.querySelector('[name="date_part_two_colour"]').value = preset.date_part_two_colour;
-			document.querySelector('[name="date_part_three_colour"]').value = preset.date_part_three_colour;
-			setSelectValue('date_position', preset.date_position);
-			setSelectValue('date_format', preset.date_format);
-		});
-
-		applyOptions();
-   </script>
-
+		loadOptions();
+	</script>
 </body>
 </html>

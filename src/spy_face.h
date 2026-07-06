@@ -12,6 +12,7 @@ typedef struct {
   int year;
   int weekday;
   int date_format;
+  int display_mode;
   int battery_percent;
   bool bluetooth_connected;
   bool backlight_on;
@@ -23,5 +24,4 @@ typedef struct {
 Layer *spy_face_layer_create(GRect frame);
 void spy_face_layer_destroy(Layer *layer);
 void spy_face_layer_set_state(Layer *layer, const SpyFaceState *state);
-void spy_face_layer_toggle_mode(Layer *layer);
 bool spy_face_layer_wants_second_ticks(Layer *layer);

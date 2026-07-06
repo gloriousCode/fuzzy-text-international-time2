@@ -70,6 +70,13 @@ static GFont spy_small_font_for_geometry(SpyFaceGeometry geometry)
   return fonts_get_system_font(FONT_KEY_GOTHIC_14);
 }
 
+static SpyFaceMode spy_mode_for_setting(int display_mode)
+{
+  return display_mode == SPY_FACE_MODE_ANALOGUE
+      ? SPY_FACE_MODE_ANALOGUE
+      : SPY_FACE_MODE_DIGITAL;
+}
+
 static void spy_draw_text(GContext *ctx, const char *text, GFont font, GRect frame,
     GTextAlignment alignment, GColor colour)
 {
@@ -132,6 +139,13 @@ static void spy_draw_shaped_hand(GContext *ctx, GPoint centre, int degrees,
   graphics_context_set_stroke_color(ctx, outline_colour);
   gpath_draw_outline(ctx, path);
   gpath_destroy(path);
+}
+
+static void spy_draw_analogue_centre_hub(GContext *ctx, SpyFaceGeometry geometry,
+    GPoint centre)
+{
+  graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
+  graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 5));
 }
 
 static void spy_draw_radial_segment(GContext *ctx, GPoint centre, int outer_radius,
@@ -559,16 +573,14 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
       spy_face_scaled_value(geometry.min_side, 24),
       spy_face_scaled_value(geometry.min_side, 2),
       hand_fill, hand_outline);
-  graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
-  graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 5));
+  spy_draw_analogue_centre_hub(ctx, geometry, centre);
 
   if (state->backlight_on && state->analogue_seconds_enabled) {
     int second_angle = state->second * 6;
     graphics_context_set_stroke_color(ctx, spy_colour(205, 42, 13));
     graphics_draw_line(ctx, centre,
         spy_polar_point(centre, radius - spy_face_scaled_value(geometry.min_side, 15), second_angle));
-    graphics_context_set_fill_color(ctx, spy_colour(205, 42, 13));
-    graphics_fill_circle(ctx, centre, spy_face_scaled_value(geometry.min_side, 5));
+    spy_draw_analogue_centre_hub(ctx, geometry, centre);
   }
 
   spy_draw_analogue_digital_readout(ctx, geometry, state, radius, bright_green);
@@ -632,19 +644,7 @@ void spy_face_layer_set_state(Layer *layer, const SpyFaceState *state)
 
   SpyFaceLayerData *data = layer_get_data(layer);
   data->state = *state;
-  layer_mark_dirty(layer);
-}
-
-void spy_face_layer_toggle_mode(Layer *layer)
-{
-  if (layer == NULL) {
-    return;
-  }
-
-  SpyFaceLayerData *data = layer_get_data(layer);
-  data->mode = data->mode == SPY_FACE_MODE_DIGITAL
-      ? SPY_FACE_MODE_ANALOGUE
-      : SPY_FACE_MODE_DIGITAL;
+  data->mode = spy_mode_for_setting(state->display_mode);
   layer_mark_dirty(layer);
 }
 

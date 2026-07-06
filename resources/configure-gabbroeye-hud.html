@@ -48,6 +48,13 @@
 <body>
 	<form id="config">
 		<div class="field">
+			<label for="display_mode">Display mode</label>
+			<select id="display_mode" name="display_mode">
+				<option value="digital">Digital</option>
+				<option value="analogue">Analogue</option>
+			</select>
+		</div>
+		<div class="field">
 			<label for="date_format">Date format</label>
 			<select id="date_format" name="date_format">
 				<option value="dd_mm_yy">DD-MM-YY</option>
@@ -76,6 +83,9 @@
 			}
 			try {
 				var options = JSON.parse(optionsParam);
+				if (options.display_mode) {
+					document.getElementById("display_mode").value = options.display_mode;
+				}
 				if (options.date_format) {
 					document.getElementById("date_format").value = options.date_format;
 				}
@@ -91,6 +101,7 @@
 		document.getElementById("config").addEventListener("submit", function(event) {
 			event.preventDefault();
 			var options = {
+				display_mode: document.getElementById("display_mode").value,
 				date_format: document.getElementById("date_format").value,
 				analogue_seconds: document.getElementById("analogue_seconds").checked
 			};

@@ -26,11 +26,12 @@
 #define DATE_PART_TWO_COLOR_KEY 12
 #define DATE_PART_THREE_COLOR_KEY 13
 #define ANALOGUE_SECONDS_KEY 14
+#define DISPLAY_MODE_KEY 15
 #define SETTINGS_SCHEMA_KEY 97
 #define TEST_HOUR_KEY 98
 #define TEST_MINUTE_KEY 99
 
-#define SETTINGS_SCHEMA_VERSION 5
+#define SETTINGS_SCHEMA_VERSION 6
 
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_LEFT 1
@@ -45,6 +46,9 @@
 #define DATE_FORMAT_MON_D_AUG 2
 #define DATE_FORMAT_DD_SLASH_MM 3
 #define DATE_FORMAT_MM_SLASH_DD 4
+
+#define DISPLAY_MODE_DIGITAL 0
+#define DISPLAY_MODE_ANALOGUE 1
 
 #define TEXT_COLOUR_MATCH_FOREGROUND -1
 #define CUSTOM_ROW_COUNT 3
@@ -77,6 +81,7 @@ static int date_part_colors[DATE_PART_COUNT] = {
 static int date_position = DATE_POSITION_OFF;
 static int date_format = DATE_FORMAT_DD_MM_YY;
 static bool analogue_seconds_enabled = true;
+static int display_mode = DISPLAY_MODE_DIGITAL;
 static FontChoice font_choice = FONT_CHOICE_CLASSIC;
 static FontChoice render_font_choice = FONT_CHOICE_CLASSIC;
 static Language lang = EN_GB;
@@ -160,6 +165,7 @@ static void refresh_spy_face(struct tm *date_time)
 		.year = date_time->tm_year + 1900,
 		.weekday = date_time->tm_wday,
 		.date_format = date_format,
+		.display_mode = display_mode,
 		.battery_percent = battery_state.charge_percent,
 		.bluetooth_connected = bluetooth_connection_service_peek(),
 		.backlight_on = backlight_on,
@@ -390,6 +396,17 @@ static int valid_date_format(int format)
 			return format;
 		default:
 			return DATE_FORMAT_DD_MM_YY;
+	}
+}
+
+static int valid_display_mode(int mode)
+{
+	switch (mode) {
+		case DISPLAY_MODE_DIGITAL:
+		case DISPLAY_MODE_ANALOGUE:
+			return mode;
+		default:
+			return DISPLAY_MODE_DIGITAL;
 	}
 }
 
@@ -1151,14 +1168,6 @@ static void handle_bluetooth_connection(bool connected)
 	refresh_spy_face(t);
 }
 
-static void handle_accel_tap(AccelAxisType axis, int32_t direction)
-{
-	(void)axis;
-	(void)direction;
-	spy_face_layer_toggle_mode(spy_face_layer);
-	refresh_spy_face(t);
-}
-
 /**
  * Debug methods. For quickly debugging enable debug macro on top to transform the watchface into
  * a standard app and you will be able to change the time with the up and down buttons
@@ -1272,6 +1281,11 @@ static void apply_settings_tuple(const uint32_t key, const Tuple* new_tuple) {
 		case ANALOGUE_SECONDS_KEY:
 			analogue_seconds_enabled = new_tuple->value->uint8 != 0;
 			persist_write_bool(ANALOGUE_SECONDS_KEY, analogue_seconds_enabled);
+			refresh_spy_face(t);
+			break;
+		case DISPLAY_MODE_KEY:
+			display_mode = valid_display_mode(new_tuple->value->uint8);
+			persist_write_int(DISPLAY_MODE_KEY, display_mode);
 			refresh_spy_face(t);
 			break;
 		case ROW_ONE_COLOR_KEY:
@@ -1518,6 +1532,9 @@ static void handle_init() {
 		if (!persist_exists(ANALOGUE_SECONDS_KEY)) {
 			persist_write_bool(ANALOGUE_SECONDS_KEY, analogue_seconds_enabled);
 		}
+		if (!persist_exists(DISPLAY_MODE_KEY)) {
+			persist_write_int(DISPLAY_MODE_KEY, display_mode);
+		}
 		persist_write_int(SETTINGS_SCHEMA_KEY, SETTINGS_SCHEMA_VERSION);
 	}
 
@@ -1604,6 +1621,11 @@ static void handle_init() {
 		analogue_seconds_enabled = persist_read_bool(ANALOGUE_SECONDS_KEY);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read analogue seconds setting from store: %u", analogue_seconds_enabled);
 	}
+	if (persist_exists(DISPLAY_MODE_KEY))
+	{
+		display_mode = valid_display_mode(persist_read_int(DISPLAY_MODE_KEY));
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Read display mode from store: %u", display_mode);
+	}
 
 	window = window_create();
 	window_set_background_color(window, colour_from_rgb(background_color));
@@ -1626,7 +1648,6 @@ static void handle_init() {
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
 	battery_state_service_subscribe(handle_battery_state);
 	bluetooth_connection_service_subscribe(handle_bluetooth_connection);
-	accel_tap_service_subscribe(handle_accel_tap);
 
 #if DEBUG
 	// Button functionality
@@ -1639,7 +1660,6 @@ static void handle_deinit()
 	tick_timer_service_unsubscribe();
 	battery_state_service_unsubscribe();
 	bluetooth_connection_service_unsubscribe();
-	accel_tap_service_unsubscribe();
 	app_message_deregister_callbacks();
 
 	// Free window
