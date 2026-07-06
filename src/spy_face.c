@@ -390,7 +390,7 @@ static void spy_draw_transparent_fill(GContext *ctx, GRect frame, GColor colour,
     int row_offset = ((y - frame.origin.y) / spacing) % 2 == 0 ? 0 : spacing / 2;
     for (int x = frame.origin.x + row_offset; x < frame.origin.x + frame.size.w;
         x += spacing) {
-      graphics_draw_pixel(ctx, GPoint(x, y));
+      graphics_draw_line(ctx, GPoint(x, y), GPoint(x, y));
     }
   }
 }
