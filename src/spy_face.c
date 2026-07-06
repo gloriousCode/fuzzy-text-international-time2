@@ -10,6 +10,7 @@
 typedef enum {
   SPY_FACE_MODE_DIGITAL = 0,
   SPY_FACE_MODE_ANALOGUE = 1,
+  SPY_FACE_MODE_COMBINED = 2,
 } SpyFaceMode;
 
 typedef enum {
@@ -72,9 +73,14 @@ static GFont spy_small_font_for_geometry(SpyFaceGeometry geometry)
 
 static SpyFaceMode spy_mode_for_setting(int display_mode)
 {
-  return display_mode == SPY_FACE_MODE_ANALOGUE
-      ? SPY_FACE_MODE_ANALOGUE
-      : SPY_FACE_MODE_DIGITAL;
+  switch (display_mode) {
+    case SPY_FACE_MODE_ANALOGUE:
+      return SPY_FACE_MODE_ANALOGUE;
+    case SPY_FACE_MODE_COMBINED:
+      return SPY_FACE_MODE_COMBINED;
+    default:
+      return SPY_FACE_MODE_DIGITAL;
+  }
 }
 
 static void spy_draw_text(GContext *ctx, const char *text, GFont font, GRect frame,
@@ -373,8 +379,24 @@ static void spy_format_date(char *buffer, size_t buffer_size, const SpyFaceState
   buffer[buffer_size - 1] = '\0';
 }
 
+static void spy_draw_transparent_fill(GContext *ctx, GRect frame, GColor colour,
+    int spacing)
+{
+  if (spacing < 2) {
+    spacing = 2;
+  }
+  graphics_context_set_stroke_color(ctx, colour);
+  for (int y = frame.origin.y; y < frame.origin.y + frame.size.h; y += spacing) {
+    int row_offset = ((y - frame.origin.y) / spacing) % 2 == 0 ? 0 : spacing / 2;
+    for (int x = frame.origin.x + row_offset; x < frame.origin.x + frame.size.w;
+        x += spacing) {
+      graphics_draw_pixel(ctx, GPoint(x, y));
+    }
+  }
+}
+
 static void spy_draw_display_background(GContext *ctx, SpyFaceGeometry geometry,
-    GColor *bright_green, GColor *middle_green)
+    GColor *bright_green, GColor *middle_green, bool transparent)
 {
   GRect display = GRect(geometry.display.x, geometry.display.y,
       geometry.display.w, geometry.display.h);
@@ -392,17 +414,23 @@ static void spy_draw_display_background(GContext *ctx, SpyFaceGeometry geometry,
       inner_display.size.w, inner_display.size.h / 2);
 
   graphics_context_set_fill_color(ctx, outer_green);
-  graphics_fill_rect(ctx, display, corner_radius, GCornersAll);
-  graphics_context_set_fill_color(ctx, screen_green);
-  graphics_fill_rect(ctx, inner_display, corner_radius, GCornersAll);
-  graphics_context_set_fill_color(ctx, band_green);
-  graphics_fill_rect(ctx, screen_band, 0, GCornerNone);
+  if (transparent) {
+    spy_draw_transparent_fill(ctx, display, outer_green, 3);
+    spy_draw_transparent_fill(ctx, inner_display, screen_green, 3);
+    spy_draw_transparent_fill(ctx, screen_band, band_green, 4);
+  } else {
+    graphics_fill_rect(ctx, display, corner_radius, GCornersAll);
+    graphics_context_set_fill_color(ctx, screen_green);
+    graphics_fill_rect(ctx, inner_display, corner_radius, GCornersAll);
+    graphics_context_set_fill_color(ctx, band_green);
+    graphics_fill_rect(ctx, screen_band, 0, GCornerNone);
+  }
   graphics_context_set_stroke_color(ctx, border_green);
   graphics_draw_rect(ctx, display);
 }
 
 static void spy_draw_digital_status_rectangles(GContext *ctx, SpyFaceGeometry geometry,
-    GRect display)
+    GRect display, bool transparent)
 {
   const int segment_count = 4;
   int segment_width = spy_face_scaled_value(geometry.min_side, 30);
@@ -414,17 +442,21 @@ static void spy_draw_digital_status_rectangles(GContext *ctx, SpyFaceGeometry ge
 
   for (int i = 0; i < segment_count; i++) {
     GColor fill_colour = i == 0 ? spy_colour(28, 198, 36) : spy_colour(28, 142, 36);
-    graphics_context_set_fill_color(ctx, fill_colour);
-    graphics_fill_rect(ctx, GRect(x + (i * (segment_width + segment_gap)), y,
-        segment_width, segment_height), 1, GCornersAll);
+    GRect segment = GRect(x + (i * (segment_width + segment_gap)), y,
+        segment_width, segment_height);
+    if (transparent) {
+      spy_draw_transparent_fill(ctx, segment, fill_colour, 2);
+    } else {
+      graphics_context_set_fill_color(ctx, fill_colour);
+      graphics_fill_rect(ctx, segment, 1, GCornersAll);
+    }
     graphics_context_set_stroke_color(ctx, spy_colour(0, 44, 12));
-    graphics_draw_rect(ctx, GRect(x + (i * (segment_width + segment_gap)), y,
-        segment_width, segment_height));
+    graphics_draw_rect(ctx, segment);
   }
 }
 
 static void spy_draw_digital_display(GContext *ctx, SpyFaceGeometry geometry,
-    const SpyFaceLayerData *data)
+    const SpyFaceLayerData *data, bool transparent)
 {
   const SpyFaceState *state = &data->state;
   GRect display = GRect(geometry.display.x, geometry.display.y,
@@ -432,7 +464,7 @@ static void spy_draw_digital_display(GContext *ctx, SpyFaceGeometry geometry,
   GColor bright_green;
   GColor middle_green;
 
-  spy_draw_display_background(ctx, geometry, &bright_green, &middle_green);
+  spy_draw_display_background(ctx, geometry, &bright_green, &middle_green, transparent);
   int pad = spy_face_scaled_value(geometry.min_side, 10);
   GFont label_font = spy_label_font_for_geometry(geometry);
   GFont small_font = spy_small_font_for_geometry(geometry);
@@ -483,7 +515,7 @@ static void spy_draw_digital_display(GContext *ctx, SpyFaceGeometry geometry,
           display.origin.y + spy_face_scaled_value(geometry.min_side, 78),
           spy_face_scaled_value(geometry.min_side, 30), spy_face_scaled_value(geometry.min_side, 18)),
       GTextAlignmentCenter, middle_green);
-  spy_draw_digital_status_rectangles(ctx, geometry, display);
+  spy_draw_digital_status_rectangles(ctx, geometry, display, transparent);
 }
 
 static void spy_draw_analogue_digital_readout(GContext *ctx, SpyFaceGeometry geometry,
@@ -516,7 +548,7 @@ static void spy_draw_analogue_digital_readout(GContext *ctx, SpyFaceGeometry geo
 }
 
 static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
-    const SpyFaceLayerData *data)
+    const SpyFaceLayerData *data, bool draw_readout)
 {
   const SpyFaceState *state = &data->state;
   GColor bright_green = spy_colour(28, 198, 36);
@@ -583,7 +615,9 @@ static void spy_draw_analogue_display(GContext *ctx, SpyFaceGeometry geometry,
     spy_draw_analogue_centre_hub(ctx, geometry, centre);
   }
 
-  spy_draw_analogue_digital_readout(ctx, geometry, state, radius, bright_green);
+  if (draw_readout) {
+    spy_draw_analogue_digital_readout(ctx, geometry, state, radius, bright_green);
+  }
 }
 
 static void spy_face_layer_update_proc(Layer *layer, GContext *ctx)
@@ -597,9 +631,12 @@ static void spy_face_layer_update_proc(Layer *layer, GContext *ctx)
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   if (data->mode == SPY_FACE_MODE_ANALOGUE) {
-    spy_draw_analogue_display(ctx, geometry, data);
+    spy_draw_analogue_display(ctx, geometry, data, true);
+  } else if (data->mode == SPY_FACE_MODE_COMBINED) {
+    spy_draw_analogue_display(ctx, geometry, data, false);
+    spy_draw_digital_display(ctx, geometry, data, true);
   } else {
-    spy_draw_digital_display(ctx, geometry, data);
+    spy_draw_digital_display(ctx, geometry, data, false);
   }
   spy_draw_ring(ctx, geometry);
   spy_draw_hardware_details(ctx, geometry);
@@ -655,7 +692,7 @@ bool spy_face_layer_wants_second_ticks(Layer *layer)
   }
 
   SpyFaceLayerData *data = layer_get_data(layer);
-  return data->mode == SPY_FACE_MODE_ANALOGUE
+  return (data->mode == SPY_FACE_MODE_ANALOGUE || data->mode == SPY_FACE_MODE_COMBINED)
       && data->state.analogue_seconds_enabled
       && data->state.backlight_on;
 }

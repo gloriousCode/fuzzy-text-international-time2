@@ -1,4 +1,4 @@
-var VERSION = "1.5.0";
+var VERSION = "1.5.1";
 var OPTIONS_STORAGE_KEY = "gabbroeye-hud-options-v1";
 var CONFIG_URL = "https://www.gloriousedge.com/fuzzy-text-two/resources/configure-fuzzy-text-two.html";
 
@@ -12,7 +12,8 @@ var dateFormats = {
 
 var displayModes = {
   digital: 0,
-  analogue: 1
+  analogue: 1,
+  combined: 2
 };
 
 function readyCallback() {

@@ -49,6 +49,7 @@
 
 #define DISPLAY_MODE_DIGITAL 0
 #define DISPLAY_MODE_ANALOGUE 1
+#define DISPLAY_MODE_COMBINED 2
 
 #define TEXT_COLOUR_MATCH_FOREGROUND -1
 #define CUSTOM_ROW_COUNT 3
@@ -404,6 +405,7 @@ static int valid_display_mode(int mode)
 	switch (mode) {
 		case DISPLAY_MODE_DIGITAL:
 		case DISPLAY_MODE_ANALOGUE:
+		case DISPLAY_MODE_COMBINED:
 			return mode;
 		default:
 			return DISPLAY_MODE_DIGITAL;

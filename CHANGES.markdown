@@ -4,7 +4,7 @@
 Changes
 ========
 
-The latest version is 1.5.0.  To update, remove the watchface from your
+The latest version is 1.5.1.  To update, remove the watchface from your
 watch and then load it again from your locker.
 
 The iOS version has to go through the Apple Store approval process - so
@@ -14,6 +14,12 @@ watchface.
 
 Android users do not need to wait for the Pebble app to update before
 updating the watchface.
+
+version 1.5.1
+-------------
+
+- Adds a combined HUD mode that draws analogue hands behind a transparent
+  digital display panel.
 
 version 1.5.0
 -------------
