@@ -4,7 +4,7 @@
 Changes
 ========
 
-The latest version is 1.4.9.  To update, remove the watchface from your
+The latest version is 1.4.10.  To update, remove the watchface from your
 watch and then load it again from your locker.
 
 The iOS version has to go through the Apple Store approval process - so
@@ -14,6 +14,12 @@ watchface.
 
 Android users do not need to wait for the Pebble app to update before
 updating the watchface.
+
+version 1.4.10
+--------------
+
+- Adds a double tap gesture that briefly shows the exact digital time before
+  returning to fuzzy text.
 
 version 1.4.9
 -------------

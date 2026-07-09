@@ -51,6 +51,8 @@
 #define DATE_LAYER_VERTICAL_MARGIN 2
 #define QUIET_TIME_ICON_SIZE 18
 #define QUIET_TIME_ICON_SPACING 3
+#define DOUBLE_TAP_WINDOW_MS 700
+#define EXACT_TIME_DISPLAY_MS 3000
 
 // The time it takes for a layer to slide in or out.
 #define ANIMATION_DURATION 400
@@ -118,6 +120,10 @@ static bool forceDisplayUpdate = false;
 
 static bool showTime = true;
 static int dateTimeout = 0;
+static bool tap_pending = false;
+static bool exact_time_visible = false;
+static AppTimer *tap_reset_timer;
+static AppTimer *exact_time_timer;
 
 static void destroy_property_animation(PropertyAnimation **animation)
 {
@@ -271,6 +277,34 @@ static int count_text_lines(char text[NUM_LINES][BUFFER_SIZE])
 	}
 
 	return count;
+}
+
+static FontChoice choose_render_font(char text[NUM_LINES][BUFFER_SIZE]);
+
+static void clear_text_lines(char text[NUM_LINES][BUFFER_SIZE], char format[])
+{
+	for (int i = 0; i < NUM_LINES; i++) {
+		text[i][0] = '\0';
+		format[i] = ' ';
+	}
+}
+
+static void exact_time_to_lines(const struct tm *date_time,
+		char text[NUM_LINES][BUFFER_SIZE], char format[])
+{
+	clear_text_lines(text, format);
+
+	int hour = date_time->tm_hour;
+	if (!clock_is_24h_style()) {
+		hour %= 12;
+		if (hour == 0) {
+			hour = 12;
+		}
+	}
+
+	snprintf(text[0], BUFFER_SIZE, "%d:%02d", hour, date_time->tm_min);
+	format[0] = 'b';
+	render_font_choice = choose_render_font(text);
 }
 
 static GTextAlignment lookup_text_alignment(int align_key)
@@ -977,7 +1011,9 @@ static void display_time(struct tm *t)
   char format[NUM_LINES];
   update_corner_date(t);
   
-  if (showTime || dateTimeout > 1) {
+  if (exact_time_visible) {
+  	exact_time_to_lines(t, textLine, format);
+  } else if (showTime || dateTimeout > 1) {
   	choose_time_lines(lang, t->tm_hour, t->tm_min, t->tm_sec, textLine, format);
     dateTimeout = 0;
     showTime = true;
@@ -1056,6 +1092,69 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
   }
   
 	display_time(tick_time);
+}
+
+static void cancel_timer(AppTimer **timer)
+{
+	if (*timer == NULL) {
+		return;
+	}
+
+	app_timer_cancel(*timer);
+	*timer = NULL;
+}
+
+static void tap_reset_timer_callback(void *context)
+{
+	(void)context;
+
+	tap_reset_timer = NULL;
+	tap_pending = false;
+}
+
+static void exact_time_timer_callback(void *context)
+{
+	(void)context;
+
+	exact_time_timer = NULL;
+	exact_time_visible = false;
+	forceDisplayUpdate = true;
+	if (t != NULL && window_loaded) {
+		display_time(t);
+	}
+}
+
+static void show_exact_time_briefly(void)
+{
+	cancel_timer(&exact_time_timer);
+	exact_time_visible = true;
+	forceDisplayUpdate = true;
+	if (t != NULL && window_loaded) {
+		display_time(t);
+	}
+	exact_time_timer = app_timer_register(EXACT_TIME_DISPLAY_MS, exact_time_timer_callback, NULL);
+	if (exact_time_timer == NULL) {
+		exact_time_timer_callback(NULL);
+	}
+}
+
+static void tap_handler(AccelAxisType axis, int32_t direction)
+{
+	(void)axis;
+	(void)direction;
+
+	if (tap_pending) {
+		cancel_timer(&tap_reset_timer);
+		tap_pending = false;
+		show_exact_time_briefly();
+		return;
+	}
+
+	tap_pending = true;
+	tap_reset_timer = app_timer_register(DOUBLE_TAP_WINDOW_MS, tap_reset_timer_callback, NULL);
+	if (tap_reset_timer == NULL) {
+		tap_pending = false;
+	}
 }
 
 /**
@@ -1498,6 +1597,7 @@ static void handle_init() {
   
 	// Subscribe to minute ticks
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+	accel_tap_service_subscribe(tap_handler);
 
 #if DEBUG
 	// Button functionality
@@ -1507,6 +1607,9 @@ static void handle_init() {
 
 static void handle_deinit()
 {
+	cancel_timer(&tap_reset_timer);
+	cancel_timer(&exact_time_timer);
+	accel_tap_service_unsubscribe();
 	tick_timer_service_unsubscribe();
 	app_message_deregister_callbacks();
 

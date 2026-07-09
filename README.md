@@ -42,6 +42,7 @@ Features:
  - Optional separate colours for minute row one, minute row two, hour row, and corner date sections
  - Font presets and visual style presets
  - Optional small corner date with compact numeric and abbreviated formats
+ - Double tap gesture to briefly show the exact digital time
  - Nice staggered animation
  - Multiple languages inherited from the original international face
 
@@ -75,6 +76,10 @@ phone:
 - Optional corner date, shown at the top or bottom with up to three coloured sections
 - Corner date format (`dd-mm-yy`, `mm-dd-yyyy`, `Mon 3 Aug`, `dd/mm`, or `mm/dd`)
 - Language
+
+Double tap the watch to show the exact digital time for a few seconds.
+The exact time follows the watch's 12-hour or 24-hour clock setting, then
+the display returns to the fuzzy text face automatically.
 
 At this time the included languages are:
 
